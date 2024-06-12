@@ -42,6 +42,7 @@ func run() error {
 		"config": config.Config,
 	}).Logln(logrus.InfoLevel, "Запустили приложение")
 
+	go appInstance.StartFileServer()
 	go appInstance.StartController(ctx)
 
 	return appInstance.CatchTerminateSignal()

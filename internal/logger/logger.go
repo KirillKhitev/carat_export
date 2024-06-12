@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -49,7 +48,7 @@ func Initialize(level string) {
 }
 
 func prepareFileName() string {
-	result := fmt.Sprintf("%s\\%s.log", config.Config.LogDir, time.Now().Format(time.DateOnly))
+	result := config.Config.LogDir + string(os.PathSeparator) + time.Now().Format(time.DateOnly) + ".log"
 
 	return result
 }

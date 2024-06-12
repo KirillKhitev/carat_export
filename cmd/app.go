@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/KirillKhitev/carat_export/internal/controller"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 type app struct {
-	c *controller.Controller
+	c      *controller.Controller
+	server http.Server
 }
 
 func newApp() *app {
@@ -21,6 +24,21 @@ func newApp() *app {
 	}
 
 	return instance
+}
+
+// StartFileServer запускает файловый сервер для отдачи изображений товаров.
+func (a *app) StartFileServer() {
+	fs := http.FileServer(http.Dir(config.Config.ImagesDir))
+
+	mux := http.NewServeMux()
+	mux.Handle("/images/", http.StripPrefix("/images/", fs))
+
+	a.server = http.Server{
+		Addr:    config.Config.ImagesURL,
+		Handler: mux,
+	}
+
+	a.server.ListenAndServe()
 }
 
 func (a *app) StartController(ctx context.Context) {
@@ -33,7 +51,7 @@ func (a *app) Bootstrap() error {
 		return nil
 	}
 
-	if err := os.Mkdir(config.Config.ImagesDir, 0644); err != nil {
+	if err := os.Mkdir(config.Config.ImagesDir, 0755); err != nil {
 		return err
 	}
 
@@ -49,9 +67,26 @@ func (a *app) Bootstrap() error {
 }
 
 func (a *app) Close() error {
+	if err := a.shutdownServer(); err != nil {
+		return err
+	}
+
 	if err := a.c.Close(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (a *app) shutdownServer() error {
+	shutdownCtx, shutdownRelease := context.WithCancel(context.TODO())
+	defer shutdownRelease()
+
+	if err := a.server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("ошибка при остановке HTTP сервера: %w", err)
+	}
+
+	logger.Log.Log(logrus.InfoLevel, "HTTP сервер успешно остановлен.")
 
 	return nil
 }

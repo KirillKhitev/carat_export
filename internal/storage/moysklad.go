@@ -34,6 +34,7 @@ func NewMoySklad() *MoySklad {
 type Product struct {
 	ID             string                `json:"id"`
 	Name           string                `json:"name"`
+	Article        string                `json:"article"`
 	Description    string                `json:"description"`
 	ImagesResponse ProductImagesResponse `json:"images"`
 	Images         []Image               `json:"-"`
@@ -147,13 +148,15 @@ func (s *MoySklad) GetProductsList(ctx context.Context) error {
 		logger.Log.WithFields(logrus.Fields{
 			"url":      url,
 			"response": response,
-		}).Logln(logrus.DebugLevel, "Получили список общий товаров из МойСклад")
+		}).Logln(logrus.InfoLevel, "Получили общий список товаров из МойСклад")
 
 		needQuery = len(response.Response.Rows) >= response.Response.Meta.Limit
 		offset = offset + response.Response.Meta.Limit
 
 		for _, product := range filterProducts(response.Response.Rows) {
+			s.m.Lock()
 			s.Products[product.ID] = product
+			s.m.Unlock()
 		}
 
 		logger.Log.WithFields(logrus.Fields{
@@ -191,7 +194,7 @@ func (s *MoySklad) GetImagesListProduct(ctx context.Context, productId string, i
 func (s *MoySklad) getImage(ctx context.Context, imageRequest ImageRow, product *Product, idImageWorker int) {
 	image := Image{
 		Filename: imageRequest.Filename,
-		Url:      strings.Join([]string{config.Config.ImagesURL, imageRequest.Filename}, ""),
+		Url:      strings.Join([]string{"http://" + config.Config.ImagesURL, config.Config.ImagesDir, imageRequest.Filename}, "/"),
 	}
 
 	product.Images = append(product.Images, image)
@@ -276,6 +279,10 @@ func queryData[T any](s *MoySklad, ctx context.Context, url string) APIServiceRe
 		SetError(&result.Error).
 		SetResult(&result.Response).
 		Get(url)
+
+	if response.StatusCode() != 200 {
+		result.Error = fmt.Errorf(string(response.Body()))
+	}
 
 	if err != nil {
 		result.Error = fmt.Errorf("%v", responseErr)

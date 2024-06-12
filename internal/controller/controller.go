@@ -7,6 +7,7 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/sirupsen/logrus"
+	"strings"
 	"sync"
 	"time"
 )
@@ -126,6 +127,13 @@ func (c *Controller) convertProductsToAvito(products map[string]storage.Product)
 	result := make([]avito.Product, 0, len(products))
 
 	for _, p := range products {
+		if len(p.Images) == 0 {
+			logger.Log.Logf(logrus.ErrorLevel, "У товара '%s' не смогли загрузить картинки, убираем его из выгрузки", p.Name)
+			continue
+		}
+
+		p.Description = strings.Join([]string{p.Article, p.Description, config.Config.ProductDescriptionAdd}, "\n")
+
 		product := avito.Product{
 			ID:          p.ID,
 			Title:       p.Name,

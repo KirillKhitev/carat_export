@@ -9,24 +9,26 @@ import (
 )
 
 type Params struct {
-	MoySkladUrl      string `json:"moy_sklad_url"`
-	MoySkladLogin    string `json:"moy_sklad_login"`
-	MoySkladPassword string `json:"moy_sklad_password"`
-	MoySkladInterval int    `json:"moy_sklad_interval"`
-	AvitoFilePath    string `json:"avito_filepath"`
-	ImagesDir        string `json:"images_dir"`
-	ImagesURL        string `json:"images_url"`
-	LogLevel         string `json:"log_level"`
-	LogDir           string `json:"log_dir"`
-	ImageWorkers     int    `json:"image_workers"`
+	MoySkladUrl           string `json:"moy_sklad_url"`
+	MoySkladLogin         string `json:"moy_sklad_login"`
+	MoySkladPassword      string `json:"moy_sklad_password"`
+	MoySkladInterval      int    `json:"moy_sklad_interval"`
+	AvitoFilePath         string `json:"avito_filepath"`
+	ImagesDir             string `json:"images_dir"`
+	ImagesURL             string `json:"images_url"`
+	LogLevel              string `json:"log_level"`
+	LogDir                string `json:"log_dir"`
+	ImageWorkers          int    `json:"image_workers"`
+	ProductDescriptionAdd string `json:"product_description_add"`
 }
 
 var Config Params = Params{}
 
-const DefaultConfigPath = ".\\config.json"
+const DefaultConfigPath = "config.json"
 
 func (f *Params) Parse() error {
 	c := &Params{}
+
 	data, err := os.ReadFile(DefaultConfigPath)
 
 	if err != nil {
@@ -48,6 +50,7 @@ func (f *Params) Parse() error {
 	flag.StringVar(&f.ImagesURL, "iu", c.ImagesURL, "Url до папки изображений")
 	flag.StringVar(&f.LogLevel, "ll", c.LogLevel, "Уровень логирования")
 	flag.StringVar(&f.LogDir, "ld", c.LogDir, "Путь до папки логов")
+	flag.StringVar(&f.ProductDescriptionAdd, "da", c.ProductDescriptionAdd, "Дополнительное описание товара")
 	flag.IntVar(&f.ImageWorkers, "iw", c.ImageWorkers, "Количество потоков для скачивания изображений")
 	flag.Parse()
 
@@ -97,6 +100,10 @@ func (f *Params) Parse() error {
 		} else {
 			return fmt.Errorf("неверное значение переменной среды IMAGE_WORKERS: %s", envImageWorkers)
 		}
+	}
+
+	if envProductDescriptionAdd := os.Getenv(`PRODUCT_DESCRIPTION_ADD`); envProductDescriptionAdd != `` {
+		f.ProductDescriptionAdd = envProductDescriptionAdd
 	}
 
 	if f.MoySkladUrl == "" {
