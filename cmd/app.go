@@ -32,6 +32,9 @@ func (a *app) StartFileServer() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/images/", http.StripPrefix("/images/", fs))
+	mux.HandleFunc("/products.xml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, config.Config.AvitoFilePath)
+	})
 
 	a.server = http.Server{
 		Addr:    config.Config.ImagesURL,
