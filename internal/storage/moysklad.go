@@ -41,6 +41,7 @@ type Product struct {
 	ExportAvito    bool                  `json:"-"`
 	AvitoId        string                `json:"-"`
 	Price          int                   `json:"-"`
+	Stock          float32               `json:"stock"`
 }
 
 type Image struct {
@@ -138,7 +139,7 @@ func (s *MoySklad) GetProductsList(ctx context.Context) error {
 	needQuery := true
 
 	for needQuery {
-		url := fmt.Sprintf("%sentity/product?expand=images&offset=%d", config.Config.MoySkladUrl, offset)
+		url := fmt.Sprintf("%sentity/assortment?expand=images&offset=%d", config.Config.MoySkladUrl, offset)
 		response := queryData[ProductListResponse](s, ctx, url)
 
 		if response.Error != nil {
@@ -148,7 +149,7 @@ func (s *MoySklad) GetProductsList(ctx context.Context) error {
 		logger.Log.WithFields(logrus.Fields{
 			"url":      url,
 			"response": response,
-		}).Logln(logrus.InfoLevel, "Получили общий список товаров из МойСклад")
+		}).Logln(logrus.InfoLevel, "Получили ассортимент товаров из МойСклад")
 
 		needQuery = len(response.Response.Rows) >= response.Response.Meta.Limit
 		offset = offset + response.Response.Meta.Limit
@@ -257,7 +258,7 @@ func (s *MoySklad) Clear() {
 
 func filterProducts(rows []Product) []Product {
 	rows = slices.DeleteFunc(rows, func(p Product) bool {
-		return p.ExportAvito == false || p.ImagesResponse.Meta.Size == 0
+		return p.ExportAvito == false || p.ImagesResponse.Meta.Size == 0 || p.Price == 0 || p.Stock == 0
 	})
 
 	return rows
