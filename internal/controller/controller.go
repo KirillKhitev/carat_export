@@ -140,6 +140,7 @@ func (c *Controller) convertProductsToAvito(products map[string]storage.Product)
 			Description: avito.ProductDescription{Text: p.Description},
 			AvitoId:     p.AvitoId,
 			Price:       p.Price,
+			VideoURL:    p.VideoURL,
 			Address:     "Свердловская обл., Екатеринбург, ул. Хохрякова, 74",
 			Category:    "Коллекционирование",
 			GoodsType:   "Другое",

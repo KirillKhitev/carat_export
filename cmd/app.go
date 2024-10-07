@@ -97,7 +97,7 @@ func (a *app) shutdownServer() error {
 func (a *app) CatchTerminateSignal() error {
 	terminateSignals := make(chan os.Signal, 1)
 
-	signal.Notify(terminateSignals, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(terminateSignals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
 
 	<-terminateSignals
 

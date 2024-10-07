@@ -21,6 +21,7 @@ type Product struct {
 	AdType      string             `xml:"AdType"`
 	Condition   string             `xml:"Condition"`
 	Price       int                `xml:"Price"`
+	VideoURL    string             `xml:"VideoURL"`
 }
 
 type ProductDescription struct {

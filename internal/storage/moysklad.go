@@ -37,6 +37,7 @@ type Product struct {
 	Article        string                `json:"article"`
 	Description    string                `json:"description"`
 	ImagesResponse ProductImagesResponse `json:"images"`
+	VideoURL       string                `json:"video_url"`
 	Images         []Image               `json:"-"`
 	ExportAvito    bool                  `json:"-"`
 	AvitoId        string                `json:"-"`
@@ -125,6 +126,8 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 			p.ExportAvito = val
 		case `AvitoId`:
 			p.AvitoId = val
+		case `VideoURL`:
+			p.VideoURL = val
 		}
 	}
 
