@@ -50,44 +50,55 @@ func (c *Controller) Clear() {
 
 func (c *Controller) startProductsProcess(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * time.Duration(config.Config.MoySkladInterval))
+
 	defer ticker.Stop()
+
+	c.downloadProducts(ctx, config.Config.NeedDownloadProducts)
 
 	for {
 		<-ticker.C
 
 		logger.Log.Restart()
-		logger.Log.Logln(logrus.InfoLevel, "Начинаем выгрузку")
-
-		c.startImageWorkers(ctx)
-
-		if err := c.storage.GetProductsList(ctx); err != nil {
-			logger.Log.WithFields(logrus.Fields{
-				"error": err,
-			}).Logln(logrus.ErrorLevel, "Ошибка при получении списка товаров")
-
-			continue
-		}
-
-		for id, _ := range c.storage.Products {
-			c.productIdsChan <- id
-		}
-
-		close(c.stopImageWorkersChan)
-
-		c.wgImageWorkers.Wait()
-
-		products := c.convertProductsToAvito(c.storage.Products)
-
-		if err := avito.CreateAutoloadFile(products); err != nil {
-			logger.Log.WithFields(logrus.Fields{
-				"error": err,
-			}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки Avito")
-		}
-
-		c.Clear()
-
-		logger.Log.Logln(logrus.InfoLevel, "Закончили выгрузку")
+		c.downloadProducts(ctx, true)
 	}
+}
+
+func (c *Controller) downloadProducts(ctx context.Context, needDo bool) {
+	if !needDo {
+		return
+	}
+
+	logger.Log.Logln(logrus.InfoLevel, "Начинаем выгрузку")
+
+	c.startImageWorkers(ctx)
+
+	if err := c.storage.GetProductsList(ctx); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Logln(logrus.ErrorLevel, "Ошибка при получении списка товаров")
+
+		return
+	}
+
+	for id, _ := range c.storage.Products {
+		c.productIdsChan <- id
+	}
+
+	close(c.stopImageWorkersChan)
+
+	c.wgImageWorkers.Wait()
+
+	products := c.convertProductsToAvito(c.storage.Products)
+
+	if err := avito.CreateAutoloadFile(products); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки Avito")
+	}
+
+	c.Clear()
+
+	logger.Log.Logln(logrus.InfoLevel, "Закончили выгрузку")
 }
 
 func (c *Controller) startImageWorkers(ctx context.Context) {

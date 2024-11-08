@@ -20,6 +20,7 @@ type Params struct {
 	LogDir                string `json:"log_dir"`
 	ImageWorkers          int    `json:"image_workers"`
 	ProductDescriptionAdd string `json:"product_description_add"`
+	NeedDownloadProducts  bool   `json:"need_download_products"`
 }
 
 var Config Params = Params{}
@@ -52,6 +53,7 @@ func (f *Params) Parse() error {
 	flag.StringVar(&f.LogDir, "ld", c.LogDir, "Путь до папки логов")
 	flag.StringVar(&f.ProductDescriptionAdd, "da", c.ProductDescriptionAdd, "Дополнительное описание товара")
 	flag.IntVar(&f.ImageWorkers, "iw", c.ImageWorkers, "Количество потоков для скачивания изображений")
+	flag.BoolVar(&f.NeedDownloadProducts, "nd", c.NeedDownloadProducts, "Начинать ли выгрузку при запуске")
 	flag.Parse()
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
