@@ -81,6 +81,7 @@ func (c *Controller) downloadProducts(ctx context.Context, needDo bool) {
 	}
 
 	for id, _ := range c.storage.Products {
+		time.Sleep(time.Millisecond * 300)
 		c.productIdsChan <- id
 	}
 

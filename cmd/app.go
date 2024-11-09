@@ -52,7 +52,11 @@ func (a *app) StartFileServer() {
 		Handler: mux,
 	}
 
-	a.server.ListenAndServe()
+	if err := a.server.ListenAndServe(); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Logln(logrus.FatalLevel, "Ошибка вебсервера при отдаче файла товаров")
+	}
 }
 
 func (a *app) StartController(ctx context.Context) {
