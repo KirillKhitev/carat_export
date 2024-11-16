@@ -116,11 +116,11 @@ func (a *app) CatchTerminateSignal() error {
 
 	<-terminateSignals
 
-	if err := a.Close(); err != nil {
-		return err
-	}
+	//if err := a.Close(); err != nil {
+	//	return err
+	//}
 
-	logger.Log.Logln(logrus.InfoLevel, "Приложение успешно остановлено")
+	//logger.Log.Logln(logrus.InfoLevel, "Приложение успешно остановлено")
 
 	return nil
 }

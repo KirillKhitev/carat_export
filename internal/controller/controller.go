@@ -7,6 +7,8 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/sirupsen/logrus"
+	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -53,13 +55,22 @@ func (c *Controller) startProductsProcess(ctx context.Context) {
 
 	defer ticker.Stop()
 
-	c.downloadProducts(ctx, config.Config.NeedDownloadProducts)
+	file, err := os.OpenFile("info.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// откладываем закрытие файла
+	defer file.Close()
+
+	// устанавливаем назначение вывода в файл info.log
+	log.SetOutput(file)
+
+	//c.downloadProducts(ctx, config.Config.NeedDownloadProducts)
 
 	for {
 		<-ticker.C
-
-		logger.Log.Restart()
-		c.downloadProducts(ctx, true)
+		log.Print("Logging to a file in Go!")
+		//c.downloadProducts(ctx, true)
 	}
 }
 

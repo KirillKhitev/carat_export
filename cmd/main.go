@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/config"
-	"github.com/KirillKhitev/carat_export/internal/logger"
-	"github.com/sirupsen/logrus"
 )
 
 // Флаги сборки.
@@ -23,7 +21,7 @@ func main() {
 	}
 
 	if err := run(); err != nil {
-		logger.Log.Logln(logrus.PanicLevel, err)
+		panic(err)
 	}
 }
 
@@ -36,13 +34,7 @@ func run() error {
 		return fmt.Errorf("bootstrap failed: %w", err)
 	}
 
-	logger.Initialize(config.Config.LogLevel)
-
-	logger.Log.WithFields(logrus.Fields{
-		"config": config.Config,
-	}).Logln(logrus.InfoLevel, "Запустили приложение")
-
-	go appInstance.StartFileServer()
+	//go appInstance.StartFileServer()
 	go appInstance.StartController(ctx)
 
 	return appInstance.CatchTerminateSignal()
