@@ -28,7 +28,7 @@ func newApp() *app {
 
 // StartFileServer запускает файловый сервер для отдачи изображений товаров.
 func (a *app) StartFileServer() {
-	fs := http.FileServer(http.Dir(config.Config.ImagesDir))
+	fs := http.FileServer(http.Dir(config.Config.ImagesPath))
 
 	mux := http.NewServeMux()
 	mux.Handle("/images/", http.StripPrefix("/images/", fs))
@@ -48,7 +48,7 @@ func (a *app) StartFileServer() {
 	})
 
 	a.server = http.Server{
-		Addr:    config.Config.ImagesURL,
+		Addr:    config.Config.ServerURL,
 		Handler: mux,
 	}
 
@@ -65,11 +65,11 @@ func (a *app) StartController(ctx context.Context) {
 
 // Bootstrap создает необходимые папки
 func (a *app) Bootstrap() error {
-	if _, err := os.Stat(config.Config.ImagesDir); err == nil {
+	if _, err := os.Stat(config.Config.ImagesPath); err == nil {
 		return nil
 	}
 
-	if err := os.Mkdir(config.Config.ImagesDir, 0755); err != nil {
+	if err := os.Mkdir(config.Config.ImagesPath, 0755); err != nil {
 		return err
 	}
 

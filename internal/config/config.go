@@ -15,7 +15,8 @@ type Params struct {
 	MoySkladInterval      int    `json:"moy_sklad_interval"`
 	AvitoFilePath         string `json:"avito_filepath"`
 	ImagesDir             string `json:"images_dir"`
-	ImagesURL             string `json:"images_url"`
+	ImagesPath            string `json:"images_path"`
+	ServerURL             string `json:"server_url"`
 	LogLevel              string `json:"log_level"`
 	LogDir                string `json:"log_dir"`
 	ImageWorkers          int    `json:"image_workers"`
@@ -48,7 +49,8 @@ func (f *Params) Parse() error {
 	flag.IntVar(&f.MoySkladInterval, "msi", c.MoySkladInterval, "МойСклад интервал забора товаров")
 	flag.StringVar(&f.AvitoFilePath, "af", c.AvitoFilePath, "Avito путь до файла выгрузки")
 	flag.StringVar(&f.ImagesDir, "id", c.ImagesDir, "Путь до папки изображений")
-	flag.StringVar(&f.ImagesURL, "iu", c.ImagesURL, "Url до папки изображений")
+	flag.StringVar(&f.ImagesPath, "ip", c.ImagesPath, "Url изображений")
+	flag.StringVar(&f.ServerURL, "iu", c.ServerURL, "Url сервера")
 	flag.StringVar(&f.LogLevel, "ll", c.LogLevel, "Уровень логирования")
 	flag.StringVar(&f.LogDir, "ld", c.LogDir, "Путь до папки логов")
 	flag.StringVar(&f.ProductDescriptionAdd, "da", c.ProductDescriptionAdd, "Дополнительное описание товара")
@@ -84,8 +86,12 @@ func (f *Params) Parse() error {
 		f.ImagesDir = envImagesDir
 	}
 
-	if envImagesURL := os.Getenv(`IMAGES_URL`); envImagesURL != `` {
-		f.ImagesURL = envImagesURL
+	if envImagesPath := os.Getenv(`IMAGES_PATH`); envImagesPath != `` {
+		f.ImagesPath = envImagesPath
+	}
+
+	if envServerURL := os.Getenv(`SERVER_URL`); envServerURL != `` {
+		f.ServerURL = envServerURL
 	}
 
 	if envLogLevel := os.Getenv(`LOG_LEVEL`); envLogLevel != `` {

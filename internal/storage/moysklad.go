@@ -198,7 +198,7 @@ func (s *MoySklad) GetImagesListProduct(ctx context.Context, productId string, i
 func (s *MoySklad) getImage(ctx context.Context, imageRequest ImageRow, product *Product, idImageWorker int) {
 	image := Image{
 		Filename: imageRequest.Filename,
-		Url:      strings.Join([]string{"http://" + config.Config.ImagesURL, config.Config.ImagesDir, imageRequest.Filename}, "/"),
+		Url:      strings.Join([]string{"http://" + config.Config.ServerURL, config.Config.ImagesDir, imageRequest.Filename}, "/"),
 	}
 
 	product.Images = append(product.Images, image)
@@ -207,7 +207,7 @@ func (s *MoySklad) getImage(ctx context.Context, imageRequest ImageRow, product 
 	s.Products[product.ID] = *product
 	s.m.Unlock()
 
-	filepath := strings.Join([]string{config.Config.ImagesDir, image.Filename}, string(os.PathSeparator))
+	filepath := strings.Join([]string{config.Config.ImagesPath, image.Filename}, string(os.PathSeparator))
 	_, err := os.Stat(filepath)
 	if err == nil {
 		return
