@@ -30,7 +30,7 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	appInstance := newApp()
+	appInstance := newApp(ctx)
 
 	if err := appInstance.Bootstrap(); err != nil {
 		return fmt.Errorf("bootstrap failed: %w", err)

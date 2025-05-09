@@ -18,9 +18,9 @@ type app struct {
 	server http.Server
 }
 
-func newApp() *app {
+func newApp(ctx context.Context) *app {
 	instance := &app{
-		c: controller.NewController(),
+		c: controller.NewController(ctx),
 	}
 
 	return instance

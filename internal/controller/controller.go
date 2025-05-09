@@ -2,11 +2,16 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/avito"
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/sirupsen/logrus"
+	"log"
+	"maps"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,16 +20,24 @@ import (
 type Controller struct {
 	storage              *storage.MoySklad
 	wgImageWorkers       *sync.WaitGroup
+	wgImportVKWorkers    *sync.WaitGroup
 	stopImageWorkersChan chan struct{}
+	stopVKWorkersChan    chan struct{}
 	productIdsChan       chan string
+	productVKIdsChan     chan string
+	vkStorage            *storage.VK
 }
 
-func NewController() *Controller {
+func NewController(ctx context.Context) *Controller {
 	return &Controller{
 		storage:              storage.NewMoySklad(),
 		wgImageWorkers:       &sync.WaitGroup{},
+		wgImportVKWorkers:    &sync.WaitGroup{},
 		stopImageWorkersChan: make(chan struct{}),
+		stopVKWorkersChan:    make(chan struct{}),
 		productIdsChan:       make(chan string),
+		productVKIdsChan:     make(chan string),
+		vkStorage:            storage.NewVK(ctx),
 	}
 }
 
@@ -34,9 +47,14 @@ func (c *Controller) Start(ctx context.Context) {
 
 func (c *Controller) Close() error {
 	close(c.stopImageWorkersChan)
-	c.wgImageWorkers.Wait()
 
+	c.wgImageWorkers.Wait()
 	logger.Log.Log(logrus.InfoLevel, "Все ImageWorkers остановлены")
+
+	close(c.stopVKWorkersChan)
+
+	c.wgImportVKWorkers.Wait()
+	logger.Log.Log(logrus.InfoLevel, "Все ImportVKWorkers остановлены")
 
 	logger.Log.Logln(logrus.InfoLevel, "Контроллер остановлен")
 
@@ -46,6 +64,9 @@ func (c *Controller) Close() error {
 func (c *Controller) Clear() {
 	c.storage.Clear()
 	c.stopImageWorkersChan = make(chan struct{})
+	c.stopVKWorkersChan = make(chan struct{})
+	c.productIdsChan = make(chan string)
+	c.productVKIdsChan = make(chan string)
 }
 
 func (c *Controller) startProductsProcess(ctx context.Context) {
@@ -53,17 +74,19 @@ func (c *Controller) startProductsProcess(ctx context.Context) {
 
 	defer ticker.Stop()
 
-	c.downloadProducts(ctx, config.Config.NeedDownloadProducts)
+	c.process(ctx, config.Config.NeedDownloadProducts)
 
 	for {
 		<-ticker.C
 
 		logger.Log.Restart()
-		c.downloadProducts(ctx, true)
+		c.process(ctx, true)
 	}
 }
 
-func (c *Controller) downloadProducts(ctx context.Context, needDo bool) {
+func (c *Controller) process(ctx context.Context, needDo bool) {
+	defer close(c.productIdsChan)
+
 	if !needDo {
 		return
 	}
@@ -71,15 +94,26 @@ func (c *Controller) downloadProducts(ctx context.Context, needDo bool) {
 	logger.Log.Logln(logrus.InfoLevel, "Начинаем выгрузку")
 
 	c.startImageWorkers(ctx)
+	c.startVKWorkers(ctx)
 
 	if err := c.storage.GetProductsList(ctx); err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"error": err,
-		}).Logln(logrus.ErrorLevel, "Ошибка при получении списка товаров")
+		}).Logln(logrus.ErrorLevel, "Ошибка при получении списка товаров MoySklad")
 
 		return
 	}
 
+	//c.updateAllProductsFromVK(ctx)
+	c.downLoadImagesProducts()
+	c.createAvitoAutoloadFile()
+	c.processVK(ctx)
+	c.Clear()
+
+	logger.Log.Logln(logrus.InfoLevel, "Закончили выгрузку")
+}
+
+func (c *Controller) downLoadImagesProducts() {
 	for id, _ := range c.storage.Products {
 		time.Sleep(time.Millisecond * 300)
 		c.productIdsChan <- id
@@ -88,24 +122,19 @@ func (c *Controller) downloadProducts(ctx context.Context, needDo bool) {
 	close(c.stopImageWorkersChan)
 
 	c.wgImageWorkers.Wait()
-
-	products := c.convertProductsToAvito(c.storage.Products)
-
-	if err := avito.CreateAutoloadFile(products); err != nil {
-		logger.Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки Avito")
-	}
-
-	c.Clear()
-
-	logger.Log.Logln(logrus.InfoLevel, "Закончили выгрузку")
 }
 
 func (c *Controller) startImageWorkers(ctx context.Context) {
 	for w := 1; w <= config.Config.ImageWorkers; w++ {
 		c.wgImageWorkers.Add(1)
 		go c.imageWorker(ctx, w)
+	}
+}
+
+func (c *Controller) startVKWorkers(ctx context.Context) {
+	for w := 1; w <= config.Config.ImportVKWorkers; w++ {
+		c.wgImportVKWorkers.Add(1)
+		go c.vkWorker(ctx, w)
 	}
 }
 
@@ -134,8 +163,112 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 	}
 }
 
+func (c *Controller) processVK(ctx context.Context) {
+	logger.Log.Log(logrus.InfoLevel, "Начали обработку VK")
+	for id, _ := range c.storage.Products {
+		time.Sleep(time.Millisecond * 300)
+		c.productVKIdsChan <- id
+	}
+
+	close(c.stopVKWorkersChan)
+
+	c.wgImportVKWorkers.Wait()
+}
+
+func (c *Controller) vkWorker(ctx context.Context, idVKWorker int) {
+	for {
+		select {
+		case <-c.stopVKWorkersChan:
+			c.wgImportVKWorkers.Done()
+			logger.Log.Logf(logrus.DebugLevel, "Остановили vkWorker #%d", idVKWorker)
+			return
+		default:
+			select {
+			case productId := <-c.productVKIdsChan:
+				c.processVKProduct(ctx, productId, idVKWorker)
+			default:
+			}
+		}
+	}
+}
+
+func (c *Controller) processVKProduct(ctx context.Context, productId string, idVKWorker int) {
+	product, ok := c.storage.Products[productId]
+
+	if !ok {
+		logger.Log.Logf(logrus.ErrorLevel, "Не нашли товар с ID %s", productId)
+		return
+	}
+
+	logger.Log.WithFields(logrus.Fields{
+		"productId": product.ID,
+		"VKWorker":  idVKWorker,
+	}).Logf(logrus.InfoLevel, "Обрабатываем товар %s", product.Name)
+
+	newProduct := c.saveProductInVK(ctx, product)
+
+	if newProduct.VKId != product.VKId || !reflect.DeepEqual(newProduct.VKMetadata, product.VKMetadata) {
+		if err := c.storage.UpdateAttributesProduct(ctx, newProduct); err != nil {
+			logger.Log.WithFields(logrus.Fields{
+				"error":       err,
+				"productId":   product.ID,
+				"productName": product.Name,
+			}).Log(logrus.ErrorLevel, "Ошибка при обновлении VK-аттрибутов товара в МойСклад")
+
+			return
+		}
+	}
+}
+
+func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Product) storage.Product {
+	product := bproduct
+	product.VKMetadata.Images = maps.Clone(bproduct.VKMetadata.Images)
+
+	if !product.ExportVK {
+		if product.VKId != "" {
+			newProduct, err := c.vkStorage.RemoveProduct(ctx, product)
+			if err != nil {
+				logger.Log.WithFields(logrus.Fields{
+					"error": err,
+				}).Logf(logrus.ErrorLevel, "Ошибка при удалении товара %s в VK", product.Name)
+			}
+
+			return newProduct
+		}
+
+		return product
+	}
+
+	if product.VKId != "" {
+		newProduct, err := c.vkStorage.EditProduct(ctx, product, 0)
+		if err != nil {
+			logger.Log.WithFields(logrus.Fields{
+				"error": err,
+			}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
+		}
+
+		return newProduct
+	}
+
+	newProduct, err := c.vkStorage.CreateProduct(ctx, product)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Logf(logrus.ErrorLevel, "Ошибка при создании товара %s в VK", product.Name)
+	}
+
+	return newProduct
+}
+
 // convertProductsToAvito готовит массив Товаров из МойСклад к виду, требуемуму Avito.
-func (c *Controller) convertProductsToAvito(products map[string]storage.Product) []avito.Product {
+func (c *Controller) convertProductsToAvito(source map[string]storage.Product) []avito.Product {
+	products := maps.Clone(source)
+	for i, p := range products {
+		if p.ExportAvito == false || p.ImagesResponse.Meta.Size == 0 || p.Price == 0 || p.Quantity == 0 {
+			delete(products, i)
+		}
+	}
+
 	result := make([]avito.Product, 0, len(products))
 
 	for _, p := range products {
@@ -172,4 +305,52 @@ func (c *Controller) convertProductsToAvito(products map[string]storage.Product)
 	}
 
 	return result
+}
+
+func (c *Controller) createAvitoAutoloadFile() {
+	products := c.convertProductsToAvito(c.storage.Products)
+
+	if err := avito.CreateAutoloadFile(products); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки Avito")
+	}
+}
+
+func (c *Controller) updateAllProductsFromVK(ctx context.Context) {
+	if err := c.vkStorage.GetProductList(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, vkItem := range c.vkStorage.Products {
+		for _, product := range c.storage.Products {
+			if product.Article != vkItem.SKU {
+				continue
+			}
+
+			if product.VKId == "" {
+				fmt.Println(product)
+			}
+
+			product.VKId = strconv.Itoa(vkItem.ID)
+			c.updateProductFromVKToMoySklad(ctx, product)
+
+			logger.Log.WithFields(logrus.Fields{
+				"productId": product.ID,
+			}).Log(logrus.InfoLevel, "Обновили товар в Мойсклад "+product.Name)
+
+			break
+		}
+	}
+}
+
+func (c *Controller) updateProductFromVKToMoySklad(ctx context.Context, product storage.Product) {
+	if err := c.storage.UpdateAttributesProduct(ctx, product); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error":     err,
+			"productId": product.ID,
+		}).Log(logrus.ErrorLevel, "Ошибка при обновлении VK-аттрибутов товара в МойСклад")
+
+		return
+	}
 }

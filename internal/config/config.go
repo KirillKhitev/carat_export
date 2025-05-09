@@ -22,6 +22,16 @@ type Params struct {
 	ImageWorkers          int    `json:"image_workers"`
 	ProductDescriptionAdd string `json:"product_description_add"`
 	NeedDownloadProducts  bool   `json:"need_download_products"`
+	ImportVKWorkers       int    `json:"vk_workers"`
+	MoySkladUpdateVKIDs   bool   `json:"moy_sklad_update_vk_ids"`
+	VkToken               string `json:"vk_access_token"`
+	VkGroupID             int    `json:"vk_group_id"`
+	VkClientID            int    `json:"vk_client_id"`
+	VkCategoryID          int    `json:"vk_category_id"`
+	VKRefreshToken        string `json:"vk_refresh_token"`
+	VKDeviceID            string `json:"vk_device_id"`
+	VKServiceKey          string `json:"vk_service_key"`
+	VKSecretKey           string `json:"vk_secret_key"`
 }
 
 var Config Params = Params{}
@@ -56,6 +66,16 @@ func (f *Params) Parse() error {
 	flag.StringVar(&f.ProductDescriptionAdd, "da", c.ProductDescriptionAdd, "Дополнительное описание товара")
 	flag.IntVar(&f.ImageWorkers, "iw", c.ImageWorkers, "Количество потоков для скачивания изображений")
 	flag.BoolVar(&f.NeedDownloadProducts, "nd", c.NeedDownloadProducts, "Начинать ли выгрузку при запуске")
+	flag.IntVar(&f.ImportVKWorkers, "vkw", c.ImportVKWorkers, "Количество потоков для импорта в VK")
+	flag.BoolVar(&f.MoySkladUpdateVKIDs, "uvi", c.MoySkladUpdateVKIDs, "Обновить VK ID товаров в МойСклад-е")
+	flag.StringVar(&f.VkToken, "vkt", c.VkToken, "VK API токен")
+	flag.IntVar(&f.VkGroupID, "vgi", c.VkGroupID, "VK Group ID")
+	flag.IntVar(&f.VkClientID, "vcli", c.VkClientID, "VK Client ID")
+	flag.IntVar(&f.VkCategoryID, "vci", c.VkCategoryID, "VK Category ID")
+	flag.StringVar(&f.VKRefreshToken, "vrt", c.VKRefreshToken, "VK Refresh Token")
+	flag.StringVar(&f.VKDeviceID, "vdi", c.VKDeviceID, "VK Device ID")
+	flag.StringVar(&f.VKServiceKey, "vservk", c.VKServiceKey, "VK Service key")
+	flag.StringVar(&f.VKSecretKey, "vseck", c.VKSecretKey, "VK Secret key")
 	flag.Parse()
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
@@ -107,6 +127,14 @@ func (f *Params) Parse() error {
 			f.ImageWorkers = val
 		} else {
 			return fmt.Errorf("неверное значение переменной среды IMAGE_WORKERS: %s", envImageWorkers)
+		}
+	}
+
+	if envImportVKWorkers := os.Getenv("VK_WORKERS"); envImportVKWorkers != "" {
+		if val, err := strconv.Atoi(envImportVKWorkers); err == nil {
+			f.ImportVKWorkers = val
+		} else {
+			return fmt.Errorf("неверное значение переменной среды VK_WORKERS: %s", envImportVKWorkers)
 		}
 	}
 
