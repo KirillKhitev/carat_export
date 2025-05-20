@@ -37,7 +37,6 @@ func NewController(ctx context.Context) *Controller {
 		stopVKWorkersChan:    make(chan struct{}),
 		productIdsChan:       make(chan string),
 		productVKIdsChan:     make(chan string),
-		vkStorage:            storage.NewVK(ctx),
 	}
 }
 
@@ -93,6 +92,7 @@ func (c *Controller) process(ctx context.Context, needDo bool) {
 
 	logger.Log.Logln(logrus.InfoLevel, "Начинаем выгрузку")
 
+	c.doBeforeProcess(ctx)
 	c.startImageWorkers(ctx)
 	c.startVKWorkers(ctx)
 
@@ -111,6 +111,10 @@ func (c *Controller) process(ctx context.Context, needDo bool) {
 	c.Clear()
 
 	logger.Log.Logln(logrus.InfoLevel, "Закончили выгрузку")
+}
+
+func (c *Controller) doBeforeProcess(ctx context.Context) {
+	c.vkStorage = storage.NewVK(ctx)
 }
 
 func (c *Controller) downLoadImagesProducts() {
@@ -229,7 +233,9 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 			newProduct, err := c.vkStorage.RemoveProduct(ctx, product)
 			if err != nil {
 				logger.Log.WithFields(logrus.Fields{
-					"error": err,
+					"error":     err,
+					"productID": product.ID,
+					"VKID":      product.VKId,
 				}).Logf(logrus.ErrorLevel, "Ошибка при удалении товара %s в VK", product.Name)
 			}
 
@@ -243,7 +249,9 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 		newProduct, err := c.vkStorage.EditProduct(ctx, product, 0)
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{
-				"error": err,
+				"error":   err,
+				"product": product.ID,
+				"VKID":    product.VKId,
 			}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
 		}
 
