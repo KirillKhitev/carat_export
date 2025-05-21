@@ -242,6 +242,10 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 			return newProduct
 		}
 
+		logger.Log.WithFields(logrus.Fields{
+			"productID": product.ID,
+		}).Logf(logrus.InfoLevel, "Пропускаем товар %s - не шлем в VK", product.Name)
+
 		return product
 	}
 

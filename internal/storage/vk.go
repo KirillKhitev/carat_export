@@ -136,7 +136,7 @@ func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Pro
 
 func (v *VK) CreateProduct(ctx context.Context, product Product) (Product, error) {
 	if len(product.Images) == 0 {
-		logger.Log.Logf(logrus.DebugLevel, "У товара %s нет картинок, не создаем в VK", product.Name)
+		logger.Log.Logf(logrus.InfoLevel, "У товара %s нет картинок, не создаем в VK", product.Name)
 		return product, nil
 	}
 
