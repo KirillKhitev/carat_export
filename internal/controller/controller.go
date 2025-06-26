@@ -257,7 +257,11 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 				"product": product.ID,
 				"VKID":    product.VKId,
 			}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
+
+			return newProduct
 		}
+
+		_ = c.vkStorage.AddProductToAlbum(ctx, newProduct)
 
 		return newProduct
 	}
@@ -267,7 +271,11 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 		logger.Log.WithFields(logrus.Fields{
 			"error": err,
 		}).Logf(logrus.ErrorLevel, "Ошибка при создании товара %s в VK", product.Name)
+
+		return newProduct
 	}
+
+	_ = c.vkStorage.AddProductToAlbum(ctx, newProduct)
 
 	return newProduct
 }

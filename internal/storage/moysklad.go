@@ -72,6 +72,7 @@ type Product struct {
 	Quantity       float32               `json:"quantity"`
 	Attributes     []MoySkladAttribute   `json:"attributes"`
 	SalePrices     []SalePrice           `json:"saleprices"`
+	PathName       string                `json:"pathName"`
 }
 
 func (p *Product) prepareMoySkladAttributeRequest() *MoySkladAttributeRequest {

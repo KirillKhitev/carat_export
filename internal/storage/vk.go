@@ -23,12 +23,14 @@ type VK struct {
 	vkImageUploadServerURL string
 	Products               map[int]vkobject.MarketMarketItem
 	client                 *resty.Client
+	Albums                 map[string]int
 }
 
 func NewVK(ctx context.Context) *VK {
 	v := &VK{
 		Products: make(map[int]vkobject.MarketMarketItem),
 		client:   resty.New(),
+		Albums:   make(map[string]int),
 	}
 
 	err := v.UpdateAccessToken()
@@ -51,6 +53,15 @@ func NewVK(ctx context.Context) *VK {
 
 	logger.Log.Log(logrus.InfoLevel, "Успешно получили адрес VK для загрузки Картинок")
 
+	err = v.GetAlbums(ctx)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Log(logrus.ErrorLevel, "Ошибка при получении списка подборок товаров")
+	}
+
+	logger.Log.Log(logrus.InfoLevel, "Успешно получили список подборок товаров")
+
 	return v
 }
 
@@ -65,6 +76,23 @@ func (v *VK) UpdateImageUploadServerURL(ctx context.Context) error {
 	}
 
 	v.vkImageUploadServerURL = response.UploadURL
+
+	return nil
+}
+
+func (v *VK) GetAlbums(ctx context.Context) error {
+	params := vk.Params{
+		"owner_id": -config.Config.VkGroupID,
+	}
+
+	response, err := v.vkApi.MarketGetAlbums(params)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range response.Items {
+		v.Albums[strings.ToUpper(item.Title)] = item.ID
+	}
 
 	return nil
 }
@@ -196,6 +224,42 @@ func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
 
 	if len(photos) > 0 {
 		params["photo_ids"] = strings.Join(photos, ",")
+	}
+
+	return params
+}
+
+func (v *VK) AddProductToAlbum(ctx context.Context, product Product) bool {
+	albumID, ok := v.Albums[strings.ToUpper(product.PathName)]
+	if !ok {
+		return false
+	}
+
+	params := v.prepareParamsForAddAlbum(product, albumID)
+
+	_, err := v.vkApi.MarketAddToAlbum(params)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error":   err,
+			"product": product.ID,
+			"VKID":    product.VKId,
+		}).Logf(logrus.ErrorLevel, "Ошибка при добавлении товара %s в альбом VK %s", product.Name, product.PathName)
+		return false
+	}
+
+	logger.Log.WithFields(logrus.Fields{
+		"product": product.ID,
+		"VKID":    product.VKId,
+	}).Logf(logrus.InfoLevel, "Успешно добавили товар %s в альбом VK %s", product.Name, product.PathName)
+
+	return true
+}
+
+func (v *VK) prepareParamsForAddAlbum(product Product, albumID int) vk.Params {
+	params := vk.Params{
+		"owner_id":  -config.Config.VkGroupID,
+		"item_ids":  product.VKId,
+		"album_ids": albumID,
 	}
 
 	return params
