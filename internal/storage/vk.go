@@ -91,7 +91,8 @@ func (v *VK) GetAlbums(ctx context.Context) error {
 	}
 
 	for _, item := range response.Items {
-		v.Albums[strings.ToUpper(item.Title)] = item.ID
+		title := strings.TrimSpace(item.Title)
+		v.Albums[strings.ToUpper(title)] = item.ID
 	}
 
 	return nil
@@ -230,8 +231,13 @@ func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
 }
 
 func (v *VK) AddProductToAlbum(ctx context.Context, product Product) bool {
-	albumID, ok := v.Albums[strings.ToUpper(product.PathName)]
+	title := strings.TrimSpace(product.PathName)
+	albumID, ok := v.Albums[strings.ToUpper(title)]
 	if !ok {
+		return false
+	}
+
+	if product.VKId == "" {
 		return false
 	}
 
