@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/avito"
 	"github.com/KirillKhitev/carat_export/internal/config"
+	"github.com/KirillKhitev/carat_export/internal/email"
 	"github.com/KirillKhitev/carat_export/internal/logger"
+	"github.com/KirillKhitev/carat_export/internal/statistic"
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -26,10 +28,11 @@ type Controller struct {
 	productIdsChan       chan string
 	productVKIdsChan     chan string
 	vkStorage            *storage.VK
+	statistics           map[string]map[string][]statistic.StatisticRow
 }
 
 func NewController(ctx context.Context) *Controller {
-	return &Controller{
+	c := &Controller{
 		storage:              storage.NewMoySklad(),
 		wgImageWorkers:       &sync.WaitGroup{},
 		wgImportVKWorkers:    &sync.WaitGroup{},
@@ -37,7 +40,12 @@ func NewController(ctx context.Context) *Controller {
 		stopVKWorkersChan:    make(chan struct{}),
 		productIdsChan:       make(chan string),
 		productVKIdsChan:     make(chan string),
+		statistics:           make(map[string]map[string][]statistic.StatisticRow),
 	}
+
+	c.statistics["VK"] = make(map[string][]statistic.StatisticRow)
+
+	return c
 }
 
 func (c *Controller) Start(ctx context.Context) {
@@ -62,6 +70,7 @@ func (c *Controller) Close() error {
 
 func (c *Controller) Clear() {
 	c.storage.Clear()
+	c.statistics = make(map[string]map[string][]statistic.StatisticRow)
 	c.stopImageWorkersChan = make(chan struct{})
 	c.stopVKWorkersChan = make(chan struct{})
 	c.productIdsChan = make(chan string)
@@ -170,13 +179,15 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 func (c *Controller) processVK(ctx context.Context) {
 	logger.Log.Log(logrus.InfoLevel, "Начали обработку VK")
 	for id, _ := range c.storage.Products {
-		time.Sleep(time.Millisecond * 300)
+		time.Sleep(time.Millisecond * 350)
 		c.productVKIdsChan <- id
 	}
 
 	close(c.stopVKWorkersChan)
 
 	c.wgImportVKWorkers.Wait()
+
+	email.Notify(c.storage.Products, c.statistics)
 }
 
 func (c *Controller) vkWorker(ctx context.Context, idVKWorker int) {
@@ -211,6 +222,8 @@ func (c *Controller) processVKProduct(ctx context.Context, productId string, idV
 
 	newProduct := c.saveProductInVK(ctx, product)
 
+	c.storage.Products[product.ID] = newProduct
+
 	if newProduct.VKId != product.VKId || !reflect.DeepEqual(newProduct.VKMetadata, product.VKMetadata) {
 		if err := c.storage.UpdateAttributesProduct(ctx, newProduct); err != nil {
 			logger.Log.WithFields(logrus.Fields{
@@ -237,6 +250,10 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 					"productID": product.ID,
 					"VKID":      product.VKId,
 				}).Logf(logrus.ErrorLevel, "Ошибка при удалении товара %s в VK", product.Name)
+
+				c.addStatisticRow("VK", product.ID, fmt.Sprintf("Ошибка при удалении товара: %s", err), statistic.STATUS_ERROR)
+			} else {
+				c.addStatisticRow("VK", product.ID, "Успешно удалили товар", statistic.STATUS_NORMAL)
 			}
 
 			return newProduct
@@ -245,6 +262,8 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 		logger.Log.WithFields(logrus.Fields{
 			"productID": product.ID,
 		}).Logf(logrus.InfoLevel, "Пропускаем товар %s - не шлем в VK", product.Name)
+
+		c.addStatisticRow("VK", product.ID, "Не отправляем товар в VK", statistic.STATUS_NORMAL)
 
 		return product
 	}
@@ -258,10 +277,21 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 				"VKID":    product.VKId,
 			}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
 
+			c.addStatisticRow("VK", product.ID, fmt.Sprintf("Ошибка при изменении товара: %s", err), statistic.STATUS_ERROR)
+
 			return newProduct
 		}
 
-		_ = c.vkStorage.AddProductToAlbum(ctx, newProduct)
+		c.addStatisticRow("VK", product.ID, "Успешно обновили товар", statistic.STATUS_NORMAL)
+
+		addToAlbum, err := c.vkStorage.AddProductToAlbum(ctx, newProduct)
+		if err != nil {
+			c.addStatisticRow("VK", product.ID, err.Error(), statistic.STATUS_ERROR)
+		}
+
+		if addToAlbum {
+			c.addStatisticRow("VK", product.ID, fmt.Sprintf("Успешно добавили товар в подборку %s", product.PathName), statistic.STATUS_NORMAL)
+		}
 
 		return newProduct
 	}
@@ -272,10 +302,21 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 			"error": err,
 		}).Logf(logrus.ErrorLevel, "Ошибка при создании товара %s в VK", product.Name)
 
+		c.addStatisticRow("VK", product.ID, fmt.Sprintf("Ошибка при создании товара: %s", err), statistic.STATUS_ERROR)
+
 		return newProduct
 	}
 
-	_ = c.vkStorage.AddProductToAlbum(ctx, newProduct)
+	c.addStatisticRow("VK", product.ID, "Успешно создали товар", statistic.STATUS_NORMAL)
+
+	addToAlbum, err := c.vkStorage.AddProductToAlbum(ctx, newProduct)
+	if err != nil {
+		c.addStatisticRow("VK", product.ID, err.Error(), statistic.STATUS_ERROR)
+	}
+
+	if addToAlbum {
+		c.addStatisticRow("VK", product.ID, fmt.Sprintf("Успешно добавили товар в подборку %s", product.PathName), statistic.STATUS_NORMAL)
+	}
 
 	return newProduct
 }
@@ -373,4 +414,10 @@ func (c *Controller) updateProductFromVKToMoySklad(ctx context.Context, product 
 
 		return
 	}
+}
+
+func (c *Controller) addStatisticRow(category, id, message string, status statistic.Status) {
+	c.statistics[category][id] = append(
+		c.statistics[category][id],
+		*statistic.NewStatisticaRow(message, status))
 }

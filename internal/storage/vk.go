@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	vk "github.com/SevereCloud/vksdk/v3/api"
@@ -25,6 +26,8 @@ type VK struct {
 	client                 *resty.Client
 	Albums                 map[string]int
 }
+
+var MAX_IMAGES_COUNT int = 4
 
 func NewVK(ctx context.Context) *VK {
 	v := &VK{
@@ -133,9 +136,7 @@ func (v *VK) GetProductList(ctx context.Context) error {
 func (v *VK) RemoveProduct(ctx context.Context, product Product) (Product, error) {
 	newProduct, err := v.EditProduct(ctx, product, 1)
 	if err != nil {
-		logger.Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Logf(logrus.ErrorLevel, "Ошибка при удалении товара %s в VK", product.Name)
+		return newProduct, err
 	}
 
 	logger.Log.Logf(logrus.InfoLevel, "Удалили товар %s в VK", product.Name)
@@ -154,8 +155,7 @@ func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Pro
 	}
 
 	if response == 0 {
-		logger.Log.Logf(logrus.ErrorLevel, "Ошибка при обновлении товара %s в VK", product.Name)
-		return product, nil
+		return product, fmt.Errorf("Сервер VK ответил %s", response)
 	}
 
 	logger.Log.Logf(logrus.InfoLevel, "Отредактировали товар %s в VK", product.Name)
@@ -165,8 +165,7 @@ func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Pro
 
 func (v *VK) CreateProduct(ctx context.Context, product Product) (Product, error) {
 	if len(product.Images) == 0 {
-		logger.Log.Logf(logrus.InfoLevel, "У товара %s нет картинок, не создаем в VK", product.Name)
-		return product, nil
+		return product, fmt.Errorf("У товара нет картинок, не создаем в VK")
 	}
 
 	product, err := v.syncImages(ctx, product)
@@ -216,6 +215,10 @@ func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
 			continue
 		}
 
+		if index >= MAX_IMAGES_COUNT {
+			break
+		}
+
 		if index == 0 {
 			params["main_photo_id"] = imgID
 		} else {
@@ -230,15 +233,15 @@ func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
 	return params
 }
 
-func (v *VK) AddProductToAlbum(ctx context.Context, product Product) bool {
+func (v *VK) AddProductToAlbum(ctx context.Context, product Product) (bool, error) {
 	title := strings.TrimSpace(product.PathName)
 	albumID, ok := v.Albums[strings.ToUpper(title)]
 	if !ok {
-		return false
+		return false, nil
 	}
 
 	if product.VKId == "" {
-		return false
+		return false, nil
 	}
 
 	params := v.prepareParamsForAddAlbum(product, albumID)
@@ -250,7 +253,7 @@ func (v *VK) AddProductToAlbum(ctx context.Context, product Product) bool {
 			"product": product.ID,
 			"VKID":    product.VKId,
 		}).Logf(logrus.ErrorLevel, "Ошибка при добавлении товара %s в альбом VK %s", product.Name, product.PathName)
-		return false
+		return false, fmt.Errorf("Ошибка при добавлении товара %s в альбом VK %s - %w", product.Name, product.PathName, err)
 	}
 
 	logger.Log.WithFields(logrus.Fields{
@@ -258,7 +261,7 @@ func (v *VK) AddProductToAlbum(ctx context.Context, product Product) bool {
 		"VKID":    product.VKId,
 	}).Logf(logrus.InfoLevel, "Успешно добавили товар %s в альбом VK %s", product.Name, product.PathName)
 
-	return true
+	return true, nil
 }
 
 func (v *VK) prepareParamsForAddAlbum(product Product, albumID int) vk.Params {
@@ -371,6 +374,10 @@ func (v *VK) UpdateAccessToken() error {
 
 	if result.State != data["state"] {
 		return errors.New("Неверная контрольная строка")
+	}
+
+	if result.RefreshToken == "" || result.AccessToken == "" {
+		return errors.New("Пустой refresh или access token, не обновляем файл конфига")
 	}
 
 	config.Config.VKRefreshToken = result.RefreshToken
