@@ -15,12 +15,12 @@ func Notify(list map[string]storage.Product, statistics map[string]map[string][]
 	emailInstance.From = config.Config.EmailFrom
 	emailInstance.To = []string{config.Config.EmailToAddr}
 	emailInstance.Bcc = []string{}
-	emailInstance.Cc = []string{}
+	emailInstance.Cc = []string{config.Config.EmailCcAddr}
 	emailInstance.Subject = config.Config.EmailSubject
 	emailInstance.HTML = prepareEmailBody(list, statistics)
 
 	addr := fmt.Sprintf("%s:%s", config.Config.EmailSmtp, config.Config.EmailSmtpPort)
-	auth := smtp.PlainAuth("", config.Config.EmailToAddr, config.Config.EmailAppPassword, config.Config.EmailSmtp)
+	auth := smtp.PlainAuth("", config.Config.EmailAppLogin, config.Config.EmailAppPassword, config.Config.EmailSmtp)
 	err := emailInstance.Send(addr, auth)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func prepareEmailBody(list map[string]storage.Product, statistics map[string]map
 	result := `<html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>Hello Gophers!</title>
+		<title>Отчет по выгрузке</title>
 	</head>
 	<body>
 		<table width=100% cellpadding=10 cellspacing=10>`

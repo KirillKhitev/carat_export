@@ -33,7 +33,9 @@ type Params struct {
 	VKServiceKey          string `json:"vk_service_key"`
 	VKSecretKey           string `json:"vk_secret_key"`
 	EmailAppPassword      string `json:"email_app_password"`
+	EmailAppLogin         string `json:"email_app_login"`
 	EmailToAddr           string `json:"email_to_addr"`
+	EmailCcAddr           string `json:"email_cc_addr"`
 	EmailFrom             string `json:"email_from"`
 	EmailSubject          string `json:"email_subject"`
 	EmailSmtp             string `json:"email_smtp"`
@@ -83,12 +85,15 @@ func (f *Params) Parse() error {
 	flag.StringVar(&f.VKServiceKey, "vservk", c.VKServiceKey, "VK Service key")
 	flag.StringVar(&f.VKSecretKey, "vseck", c.VKSecretKey, "VK Secret key")
 	flag.StringVar(&f.EmailAppPassword, "eap", c.EmailAppPassword, "Email App Password")
-	flag.StringVar(&f.EmailToAddr, "eta", c.EmailToAddr, "Email To address")
 	flag.StringVar(&f.EmailFrom, "ef", c.EmailFrom, "Email From")
 	flag.StringVar(&f.EmailSubject, "es", c.EmailSubject, "Email Subject")
 	flag.StringVar(&f.EmailSmtp, "esm", c.EmailSmtp, "Email SMTP Host")
 	flag.StringVar(&f.EmailSmtpPort, "esmp", c.EmailSmtpPort, "Email SMTP Port")
 	flag.Parse()
+
+	f.EmailToAddr = c.EmailToAddr
+	f.EmailCcAddr = c.EmailCcAddr
+	f.EmailAppLogin = c.EmailAppLogin
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
 		f.MoySkladUrl = envMoySkladUrl
