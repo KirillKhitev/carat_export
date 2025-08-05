@@ -46,6 +46,7 @@ func NewVK(ctx context.Context) *VK {
 	logger.Log.Log(logrus.InfoLevel, "Успешно обновили VK Access_token")
 
 	v.vkApi = vk.NewVK(config.Config.VkToken)
+	v.vkApi.Limit = vk.LimitUserToken
 
 	err = v.UpdateImageUploadServerURL(ctx)
 	if err != nil {
