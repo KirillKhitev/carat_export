@@ -347,7 +347,7 @@ func (c *Controller) convertProductsToAvito(source map[string]storage.Product) [
 			Price:       p.Price,
 			VideoURL:    p.VideoURL,
 			Address:     "Свердловская обл., Екатеринбург, ул. Хохрякова, 74",
-			Category:    "Коллекционирование",
+			Category:    "Часы и украшения",
 			GoodsType:   "Другое",
 			AdType:      "Продаю своё",
 			Condition:   "Новое",
