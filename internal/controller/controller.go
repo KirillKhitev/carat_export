@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/avito"
 	"github.com/KirillKhitev/carat_export/internal/config"
+	"github.com/KirillKhitev/carat_export/internal/email"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/statistic"
 	"github.com/KirillKhitev/carat_export/internal/storage"
@@ -185,7 +186,7 @@ func (c *Controller) processVK(ctx context.Context) {
 
 	c.wgImportVKWorkers.Wait()
 
-	//email.Notify(c.storage.Products, c.statistics)
+	email.Notify(c.storage.Products, c.statistics)
 }
 
 func (c *Controller) vkWorker(ctx context.Context, idVKWorker int) {
