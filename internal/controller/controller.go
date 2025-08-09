@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/KirillKhitev/carat_export/internal/avito"
 	"github.com/KirillKhitev/carat_export/internal/config"
-	"github.com/KirillKhitev/carat_export/internal/email"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/statistic"
 	"github.com/KirillKhitev/carat_export/internal/storage"
@@ -14,7 +13,6 @@ import (
 	"maps"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -187,7 +185,7 @@ func (c *Controller) processVK(ctx context.Context) {
 
 	c.wgImportVKWorkers.Wait()
 
-	email.Notify(c.storage.Products, c.statistics)
+	//email.Notify(c.storage.Products, c.statistics)
 }
 
 func (c *Controller) vkWorker(ctx context.Context, idVKWorker int) {
@@ -325,55 +323,8 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 	return newProduct
 }
 
-// convertProductsToAvito готовит массив Товаров из МойСклад к виду, требуемуму Avito.
-func (c *Controller) convertProductsToAvito(source map[string]storage.Product) []avito.Product {
-	products := maps.Clone(source)
-	for i, p := range products {
-		if p.ExportAvito == false || p.ImagesResponse.Meta.Size == 0 || p.Price == 0 || p.Quantity == 0 {
-			delete(products, i)
-		}
-	}
-
-	result := make([]avito.Product, 0, len(products))
-
-	for _, p := range products {
-		if len(p.Images) == 0 {
-			logger.Log.Logf(logrus.ErrorLevel, "У товара '%s' не смогли загрузить картинки, убираем его из выгрузки", p.Name)
-			continue
-		}
-
-		p.Description = strings.Join([]string{p.Article, p.Description, config.Config.ProductDescriptionAdd}, "\n")
-
-		product := avito.Product{
-			ID:          p.ID,
-			Title:       p.Name,
-			Description: avito.ProductDescription{Text: p.Description},
-			AvitoId:     p.AvitoId,
-			Price:       p.Price,
-			VideoURL:    p.VideoURL,
-			Address:     "Свердловская обл., Екатеринбург, ул. Хохрякова, 74",
-			Category:    "Часы и украшения",
-			GoodsType:   "Другое",
-			AdType:      "Продаю своё",
-			Condition:   "Новое",
-		}
-
-		for _, img := range p.Images {
-			image := avito.Image{
-				Url: img.Url,
-			}
-
-			product.Images.Image = append(product.Images.Image, image)
-		}
-
-		result = append(result, product)
-	}
-
-	return result
-}
-
 func (c *Controller) createAvitoAutoloadFile() {
-	products := c.convertProductsToAvito(c.storage.Products)
+	products := avito.ConvertProducts(c.storage.Products)
 
 	if err := avito.CreateAutoloadFile(products); err != nil {
 		logger.Log.WithFields(logrus.Fields{
