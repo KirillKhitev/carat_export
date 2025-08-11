@@ -178,7 +178,7 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 func (c *Controller) processVK(ctx context.Context) {
 	logger.Log.Log(logrus.InfoLevel, "Начали обработку VK")
 	for id, _ := range c.storage.Products {
-		time.Sleep(time.Millisecond * 400)
+		time.Sleep(time.Millisecond * 500)
 		c.productVKIdsChan <- id
 	}
 
@@ -283,7 +283,7 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 
 		c.addStatisticRow("VK", product.ID, "Успешно обновили товар", statistic.STATUS_NORMAL)
 
-		time.Sleep(time.Millisecond * 400)
+		time.Sleep(time.Millisecond * 500)
 
 		addToAlbum, err := c.vkStorage.AddProductToAlbum(ctx, newProduct)
 		if err != nil {
@@ -310,7 +310,7 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 
 	c.addStatisticRow("VK", product.ID, "Успешно создали товар", statistic.STATUS_NORMAL)
 
-	time.Sleep(time.Millisecond * 400)
+	time.Sleep(time.Millisecond * 500)
 
 	addToAlbum, err := c.vkStorage.AddProductToAlbum(ctx, newProduct)
 	if err != nil {

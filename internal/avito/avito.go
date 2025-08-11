@@ -72,9 +72,9 @@ func ConvertProducts(source map[string]storage.Product) []Product {
 			Price:       p.Price,
 			VideoURL:    p.VideoURL,
 			Address:     "Свердловская обл., Екатеринбург, ул. Хохрякова, 74",
-			Category:    "Часы и украшения",
-			GoodsType:   "Ювелирные изделия",
-			AdType:      "Товар от производителя",
+			Category:    "Коллекционирование",
+			GoodsType:   "Другое",
+			AdType:      "Продаю своё",
 			Condition:   "Новое",
 		}
 
