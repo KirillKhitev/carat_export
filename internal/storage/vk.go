@@ -193,6 +193,10 @@ func (v *VK) CreateProduct(ctx context.Context, product Product) (Product, error
 }
 
 func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
+	if product.Price == 0 {
+		deleted = 1
+	}
+
 	params := vk.Params{
 		"owner_id":     -config.Config.VkGroupID,
 		"name":         product.Name,
@@ -230,6 +234,10 @@ func (v *VK) prepareParamsProduct(product Product, deleted int) vk.Params {
 	if len(photos) > 0 {
 		params["photo_ids"] = strings.Join(photos, ",")
 	}
+
+	logger.Log.WithFields(logrus.Fields{
+		"params": params,
+	}).Logf(logrus.InfoLevel, "Подготовили параметры товара %s для отправки в VK", product.Name)
 
 	return params
 }
