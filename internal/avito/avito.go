@@ -71,7 +71,7 @@ func ConvertProducts(source map[string]storage.Product) []Product {
 			AvitoId:     p.AvitoId,
 			Price:       p.Price,
 			VideoURL:    p.VideoURL,
-			Address:     "Свердловская обл., Екатеринбург, ул. Малышева, стр. 53, офис 8/02",
+			Address:     "Екатеринбург, ул. Малышева, 53",
 			Category:    "Коллекционирование",
 			GoodsType:   "Другое",
 			AdType:      "Продаю своё",
