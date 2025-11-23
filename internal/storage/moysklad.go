@@ -9,6 +9,7 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -64,6 +65,8 @@ type Product struct {
 	Images         []Image               `json:"images_array"`
 	ExportAvito    bool                  `json:"-"`
 	AvitoId        string                `json:"-"`
+	AvitoClickCost float64               `json:"-"`
+	AvitoDayLimit  float64               `json:"-"`
 	ExportVK       bool                  `json:"exportvk"`
 	VKId           string                `json:"vkid"`
 	VKMetadata     VKMetadata            `json:"vkmetadata"`
@@ -196,6 +199,28 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 			p.ExportAvito = val
 		case `AvitoId`:
 			p.AvitoId = val
+		case `Цена клика Avito`:
+			val, err := strconv.ParseFloat(val, 32)
+			if err != nil {
+				logger.Log.WithFields(logrus.Fields{
+					"Value":       val,
+					"productID":   p.ID,
+					"productName": p.Name,
+					"error":       err,
+				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге Цены клика Avito товара из Мойсклад")
+			}
+			p.AvitoClickCost = math.Round(val*100) / 100
+		case `Суточный лимит Avito`:
+			val, err := strconv.ParseFloat(val, 32)
+			if err != nil {
+				logger.Log.WithFields(logrus.Fields{
+					"Value":       val,
+					"productID":   p.ID,
+					"productName": p.Name,
+					"error":       err,
+				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге Суточного лимита Avito товара из Мойсклад")
+			}
+			p.AvitoDayLimit = math.Round(val*100) / 100
 		case `Выгружать в VK`:
 			val, _ := strconv.ParseBool(val)
 			p.ExportVK = val

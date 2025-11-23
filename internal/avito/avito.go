@@ -12,24 +12,37 @@ import (
 )
 
 type Product struct {
-	XMLName     xml.Name           `xml:"Ad"`
-	ID          string             `xml:"Id"`
-	AvitoId     string             `xml:"AvitoId,omitempty"`
-	Title       string             `xml:"Title"`
-	Description ProductDescription `xml:"Description"`
-	Images      Images             `xml:"Images"`
-	Address     string             `xml:"Address"`
-	Category    string             `xml:"Category"`
-	GoodsType   string             `xml:"GoodsType"`
-	AdType      string             `xml:"AdType"`
-	Condition   string             `xml:"Condition"`
-	Price       int                `xml:"Price"`
-	VideoURL    string             `xml:"VideoURL"`
+	XMLName            xml.Name           `xml:"Ad"`
+	ID                 string             `xml:"Id"`
+	AvitoId            string             `xml:"AvitoId,omitempty"`
+	Title              string             `xml:"Title"`
+	Description        ProductDescription `xml:"Description"`
+	Images             Images             `xml:"Images"`
+	Address            string             `xml:"Address"`
+	Promo              string             `xml:"Promo,omitempty"`
+	PromoManualOptions PromoManualOptions `xml:"PromoManualOptions,omitempty"`
+	Category           string             `xml:"Category"`
+	GoodsType          string             `xml:"GoodsType"`
+	AdType             string             `xml:"AdType"`
+	Condition          string             `xml:"Condition"`
+	Price              int                `xml:"Price"`
+	VideoURL           string             `xml:"VideoURL"`
 }
 
 type ProductDescription struct {
 	Text string `xml:",cdata"`
 }
+
+type PromoManualOptions struct {
+	Items []PromoManualOptionItem `xml:"Item,omitempty"`
+}
+
+type PromoManualOptionItem struct {
+	Region   string  `xml:"Region,omitempty"`
+	Bid      float64 `xml:"Bid"`
+	DayLimit float64 `xml:"DayLimit"`
+}
+
 type Images struct {
 	Image []Image `xml:"Image"`
 }
@@ -78,6 +91,8 @@ func ConvertProducts(source map[string]storage.Product) []Product {
 			Condition:   "Новое",
 		}
 
+		preparePromoManualOptions(&product, p)
+
 		for _, img := range p.Images {
 			image := Image{
 				Url: img.Url,
@@ -119,4 +134,16 @@ func CreateAutoloadFile(products []Product) error {
 	f.Write(data)
 
 	return nil
+}
+
+func preparePromoManualOptions(product *Product, storageProduct storage.Product) {
+	if storageProduct.AvitoClickCost == 0 || storageProduct.AvitoDayLimit == 0 {
+		return
+	}
+
+	product.Promo = "Manual"
+	product.PromoManualOptions.Items = append(product.PromoManualOptions.Items, PromoManualOptionItem{
+		Bid:      storageProduct.AvitoClickCost,
+		DayLimit: storageProduct.AvitoDayLimit,
+	})
 }
