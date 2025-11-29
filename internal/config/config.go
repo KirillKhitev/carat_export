@@ -9,37 +9,39 @@ import (
 )
 
 type Params struct {
-	MoySkladUrl           string `json:"moy_sklad_url"`
-	MoySkladLogin         string `json:"moy_sklad_login"`
-	MoySkladPassword      string `json:"moy_sklad_password"`
-	MoySkladInterval      int    `json:"moy_sklad_interval"`
-	AvitoFilePath         string `json:"avito_filepath"`
-	ImagesDir             string `json:"images_dir"`
-	ImagesPath            string `json:"images_path"`
-	ServerURL             string `json:"server_url"`
-	LogLevel              string `json:"log_level"`
-	LogDir                string `json:"log_dir"`
-	ImageWorkers          int    `json:"image_workers"`
-	ProductDescriptionAdd string `json:"product_description_add"`
-	NeedDownloadProducts  bool   `json:"need_download_products"`
-	ImportVKWorkers       int    `json:"vk_workers"`
-	MoySkladUpdateVKIDs   bool   `json:"moy_sklad_update_vk_ids"`
-	VkToken               string `json:"vk_access_token"`
-	VkGroupID             int    `json:"vk_group_id"`
-	VkClientID            int    `json:"vk_client_id"`
-	VkCategoryID          int    `json:"vk_category_id"`
-	VKRefreshToken        string `json:"vk_refresh_token"`
-	VKDeviceID            string `json:"vk_device_id"`
-	VKServiceKey          string `json:"vk_service_key"`
-	VKSecretKey           string `json:"vk_secret_key"`
-	EmailAppPassword      string `json:"email_app_password"`
-	EmailAppLogin         string `json:"email_app_login"`
-	EmailToAddr           string `json:"email_to_addr"`
-	EmailCcAddr           string `json:"email_cc_addr"`
-	EmailFrom             string `json:"email_from"`
-	EmailSubject          string `json:"email_subject"`
-	EmailSmtp             string `json:"email_smtp"`
-	EmailSmtpPort         string `json:"email_smtp_port"`
+	MoySkladUrl           string  `json:"moy_sklad_url"`
+	MoySkladLogin         string  `json:"moy_sklad_login"`
+	MoySkladPassword      string  `json:"moy_sklad_password"`
+	MoySkladInterval      int     `json:"moy_sklad_interval"`
+	AvitoFilePath         string  `json:"avito_filepath"`
+	AvitoClickCost        float64 `json:"avito_click_cost"`
+	AvitoDayLimit         float64 `json:"avito_day_limit"`
+	ImagesDir             string  `json:"images_dir"`
+	ImagesPath            string  `json:"images_path"`
+	ServerURL             string  `json:"server_url"`
+	LogLevel              string  `json:"log_level"`
+	LogDir                string  `json:"log_dir"`
+	ImageWorkers          int     `json:"image_workers"`
+	ProductDescriptionAdd string  `json:"product_description_add"`
+	NeedDownloadProducts  bool    `json:"need_download_products"`
+	ImportVKWorkers       int     `json:"vk_workers"`
+	MoySkladUpdateVKIDs   bool    `json:"moy_sklad_update_vk_ids"`
+	VkToken               string  `json:"vk_access_token"`
+	VkGroupID             int     `json:"vk_group_id"`
+	VkClientID            int     `json:"vk_client_id"`
+	VkCategoryID          int     `json:"vk_category_id"`
+	VKRefreshToken        string  `json:"vk_refresh_token"`
+	VKDeviceID            string  `json:"vk_device_id"`
+	VKServiceKey          string  `json:"vk_service_key"`
+	VKSecretKey           string  `json:"vk_secret_key"`
+	EmailAppPassword      string  `json:"email_app_password"`
+	EmailAppLogin         string  `json:"email_app_login"`
+	EmailToAddr           string  `json:"email_to_addr"`
+	EmailCcAddr           string  `json:"email_cc_addr"`
+	EmailFrom             string  `json:"email_from"`
+	EmailSubject          string  `json:"email_subject"`
+	EmailSmtp             string  `json:"email_smtp"`
+	EmailSmtpPort         string  `json:"email_smtp_port"`
 }
 
 var Config Params = Params{}
@@ -94,6 +96,9 @@ func (f *Params) Parse() error {
 	f.EmailToAddr = c.EmailToAddr
 	f.EmailCcAddr = c.EmailCcAddr
 	f.EmailAppLogin = c.EmailAppLogin
+
+	f.AvitoClickCost = c.AvitoClickCost
+	f.AvitoDayLimit = c.AvitoDayLimit
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
 		f.MoySkladUrl = envMoySkladUrl

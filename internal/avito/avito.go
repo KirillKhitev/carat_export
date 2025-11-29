@@ -137,13 +137,20 @@ func CreateAutoloadFile(products []Product) error {
 }
 
 func preparePromoManualOptions(product *Product, storageProduct storage.Product) {
-	if storageProduct.AvitoClickCost == 0 {
-		return
+	clickCost := storageProduct.AvitoClickCost
+	dayLimit := storageProduct.AvitoDayLimit
+
+	if clickCost == 0.0 {
+		clickCost = config.Config.AvitoClickCost
+	}
+
+	if dayLimit == 0.0 {
+		dayLimit = config.Config.AvitoDayLimit
 	}
 
 	product.Promo = "Manual"
 	product.PromoManualOptions.Items = append(product.PromoManualOptions.Items, PromoManualOptionItem{
-		Bid:      storageProduct.AvitoClickCost,
-		DayLimit: storageProduct.AvitoDayLimit,
+		Bid:      clickCost,
+		DayLimit: dayLimit,
 	})
 }
