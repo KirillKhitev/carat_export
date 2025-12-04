@@ -38,9 +38,9 @@ type PromoManualOptions struct {
 }
 
 type PromoManualOptionItem struct {
-	Region   string  `xml:"Region,omitempty"`
-	Bid      float64 `xml:"Bid"`
-	DayLimit float64 `xml:"DayLimit,omitempty"`
+	Region     string  `xml:"Region,omitempty"`
+	Bid        float64 `xml:"Bid"`
+	DailyLimit float64 `xml:"DailyLimit,omitempty"`
 }
 
 type Images struct {
@@ -138,19 +138,19 @@ func CreateAutoloadFile(products []Product) error {
 
 func preparePromoManualOptions(product *Product, storageProduct storage.Product) {
 	clickCost := storageProduct.AvitoClickCost
-	dayLimit := storageProduct.AvitoDayLimit
+	dailyLimit := storageProduct.AvitoDailyLimit
 
 	if clickCost == 0.0 {
 		clickCost = config.Config.AvitoClickCost
 	}
 
-	if dayLimit == 0.0 {
-		dayLimit = config.Config.AvitoDayLimit
+	if dailyLimit == 0.0 {
+		dailyLimit = config.Config.AvitoDailyLimit
 	}
 
 	product.Promo = "Manual"
 	product.PromoManualOptions.Items = append(product.PromoManualOptions.Items, PromoManualOptionItem{
-		Bid:      clickCost,
-		DayLimit: dayLimit,
+		Bid:        clickCost,
+		DailyLimit: dailyLimit,
 	})
 }

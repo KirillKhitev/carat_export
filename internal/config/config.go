@@ -15,7 +15,7 @@ type Params struct {
 	MoySkladInterval      int     `json:"moy_sklad_interval"`
 	AvitoFilePath         string  `json:"avito_filepath"`
 	AvitoClickCost        float64 `json:"avito_click_cost"`
-	AvitoDayLimit         float64 `json:"avito_day_limit"`
+	AvitoDailyLimit       float64 `json:"avito_daily_limit"`
 	ImagesDir             string  `json:"images_dir"`
 	ImagesPath            string  `json:"images_path"`
 	ServerURL             string  `json:"server_url"`
@@ -98,7 +98,7 @@ func (f *Params) Parse() error {
 	f.EmailAppLogin = c.EmailAppLogin
 
 	f.AvitoClickCost = c.AvitoClickCost
-	f.AvitoDayLimit = c.AvitoDayLimit
+	f.AvitoDailyLimit = c.AvitoDailyLimit
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
 		f.MoySkladUrl = envMoySkladUrl

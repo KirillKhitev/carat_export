@@ -56,26 +56,26 @@ func NewMoySklad() *MoySklad {
 }
 
 type Product struct {
-	ID             string                `json:"id"`
-	Name           string                `json:"name"`
-	Article        string                `json:"article"`
-	Description    string                `json:"description"`
-	ImagesResponse ProductImagesResponse `json:"images"`
-	VideoURL       string                `json:"video_url"`
-	Images         []Image               `json:"images_array"`
-	ExportAvito    bool                  `json:"-"`
-	AvitoId        string                `json:"-"`
-	AvitoClickCost float64               `json:"-"`
-	AvitoDayLimit  float64               `json:"-"`
-	ExportVK       bool                  `json:"exportvk"`
-	VKId           string                `json:"vkid"`
-	VKMetadata     VKMetadata            `json:"vkmetadata"`
-	Price          int                   `json:"price"`
-	Stock          float32               `json:"stock"`
-	Quantity       float32               `json:"quantity"`
-	Attributes     []MoySkladAttribute   `json:"attributes"`
-	SalePrices     []SalePrice           `json:"saleprices"`
-	PathName       string                `json:"pathName"`
+	ID              string                `json:"id"`
+	Name            string                `json:"name"`
+	Article         string                `json:"article"`
+	Description     string                `json:"description"`
+	ImagesResponse  ProductImagesResponse `json:"images"`
+	VideoURL        string                `json:"video_url"`
+	Images          []Image               `json:"images_array"`
+	ExportAvito     bool                  `json:"-"`
+	AvitoId         string                `json:"-"`
+	AvitoClickCost  float64               `json:"-"`
+	AvitoDailyLimit float64               `json:"-"`
+	ExportVK        bool                  `json:"exportvk"`
+	VKId            string                `json:"vkid"`
+	VKMetadata      VKMetadata            `json:"vkmetadata"`
+	Price           int                   `json:"price"`
+	Stock           float32               `json:"stock"`
+	Quantity        float32               `json:"quantity"`
+	Attributes      []MoySkladAttribute   `json:"attributes"`
+	SalePrices      []SalePrice           `json:"saleprices"`
+	PathName        string                `json:"pathName"`
 }
 
 func (p *Product) prepareMoySkladAttributeRequest() *MoySkladAttributeRequest {
@@ -220,7 +220,7 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 					"error":       err,
 				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге Суточного лимита Avito товара из Мойсклад")
 			}
-			p.AvitoDayLimit = math.Round(val*100) / 100
+			p.AvitoDailyLimit = math.Round(val*100) / 100
 		case `Выгружать в VK`:
 			val, _ := strconv.ParseBool(val)
 			p.ExportVK = val
