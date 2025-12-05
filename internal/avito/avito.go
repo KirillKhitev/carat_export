@@ -39,7 +39,7 @@ type PromoManualOptions struct {
 
 type PromoManualOptionItem struct {
 	Region     string  `xml:"Region,omitempty"`
-	Bid        float64 `xml:"Bid"`
+	Bid        int     `xml:"Bid"`
 	DailyLimit float64 `xml:"DailyLimit,omitempty"`
 }
 
@@ -140,7 +140,7 @@ func preparePromoManualOptions(product *Product, storageProduct storage.Product)
 	clickCost := storageProduct.AvitoClickCost
 	dailyLimit := storageProduct.AvitoDailyLimit
 
-	if clickCost == 0.0 {
+	if clickCost == 0 {
 		clickCost = config.Config.AvitoClickCost
 	}
 

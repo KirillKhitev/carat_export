@@ -65,7 +65,7 @@ type Product struct {
 	Images          []Image               `json:"images_array"`
 	ExportAvito     bool                  `json:"-"`
 	AvitoId         string                `json:"-"`
-	AvitoClickCost  float64               `json:"-"`
+	AvitoClickCost  int                   `json:"-"`
 	AvitoDailyLimit float64               `json:"-"`
 	ExportVK        bool                  `json:"exportvk"`
 	VKId            string                `json:"vkid"`
@@ -200,7 +200,7 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 		case `AvitoId`:
 			p.AvitoId = val
 		case `Цена клика Avito`:
-			val, err := strconv.ParseFloat(val, 32)
+			val, err := strconv.Atoi(val)
 			if err != nil {
 				logger.Log.WithFields(logrus.Fields{
 					"Value":       val,
@@ -209,7 +209,7 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 					"error":       err,
 				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге Цены клика Avito товара из Мойсклад")
 			}
-			p.AvitoClickCost = math.Round(val*100) / 100
+			p.AvitoClickCost = val
 		case `Суточный лимит Avito`:
 			val, err := strconv.ParseFloat(val, 32)
 			if err != nil {

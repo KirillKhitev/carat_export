@@ -14,7 +14,7 @@ type Params struct {
 	MoySkladPassword      string  `json:"moy_sklad_password"`
 	MoySkladInterval      int     `json:"moy_sklad_interval"`
 	AvitoFilePath         string  `json:"avito_filepath"`
-	AvitoClickCost        float64 `json:"avito_click_cost"`
+	AvitoClickCost        int     `json:"avito_click_cost"`
 	AvitoDailyLimit       float64 `json:"avito_daily_limit"`
 	ImagesDir             string  `json:"images_dir"`
 	ImagesPath            string  `json:"images_path"`
