@@ -178,7 +178,7 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 func (c *Controller) processVK(ctx context.Context) {
 	logger.Log.Log(logrus.InfoLevel, "Начали обработку VK")
 	for id, _ := range c.storage.Products {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 700)
 		c.productVKIdsChan <- id
 	}
 
