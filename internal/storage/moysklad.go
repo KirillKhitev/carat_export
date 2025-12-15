@@ -64,6 +64,7 @@ type Product struct {
 	VideoURL        string                `json:"video_url"`
 	Images          []Image               `json:"images_array"`
 	ExportAvito     bool                  `json:"-"`
+	ExportYMarket   bool                  `json:"-"`
 	AvitoId         string                `json:"-"`
 	AvitoClickCost  int                   `json:"-"`
 	AvitoDailyLimit float64               `json:"-"`
@@ -238,7 +239,9 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге VKMetadata товара из Мойсклад")
 			}
 			AttributeIDs.VKMetadata = v.Id
-
+		case `Выгружать в Yandex Market`:
+			val, _ := strconv.ParseBool(val)
+			p.ExportYMarket = val
 		case `VideoURL`:
 			p.VideoURL = val
 		}

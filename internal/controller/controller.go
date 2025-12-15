@@ -9,6 +9,7 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/statistic"
 	"github.com/KirillKhitev/carat_export/internal/storage"
+	"github.com/KirillKhitev/carat_export/internal/yandexMarket"
 	"github.com/sirupsen/logrus"
 	"log"
 	"maps"
@@ -115,6 +116,7 @@ func (c *Controller) process(ctx context.Context, needDo bool) {
 	//c.updateAllProductsFromVK(ctx)
 	c.downLoadImagesProducts()
 	c.createAvitoAutoloadFile()
+	c.createYandexMarketAutoloadFile()
 	c.processVK(ctx)
 	c.Clear()
 
@@ -331,6 +333,16 @@ func (c *Controller) createAvitoAutoloadFile() {
 		logger.Log.WithFields(logrus.Fields{
 			"error": err,
 		}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки Avito")
+	}
+}
+
+func (c *Controller) createYandexMarketAutoloadFile() {
+	products := yandexMarket.ConvertProducts(c.storage.Products)
+
+	if err := yandexMarket.CreateAutoloadFile(products); err != nil {
+		logger.Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Log(logrus.ErrorLevel, "Ошибка при сохранении товаров в файл выгрузки YandexMarket")
 	}
 }
 

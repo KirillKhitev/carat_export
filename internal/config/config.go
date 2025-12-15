@@ -42,6 +42,8 @@ type Params struct {
 	EmailSubject          string  `json:"email_subject"`
 	EmailSmtp             string  `json:"email_smtp"`
 	EmailSmtpPort         string  `json:"email_smtp_port"`
+	YMarketCategoryID     int     `json:"ymarket_category_id"`
+	YMarketFilepath       string  `json:"ymarket_filepath"`
 }
 
 var Config Params = Params{}
@@ -99,6 +101,8 @@ func (f *Params) Parse() error {
 
 	f.AvitoClickCost = c.AvitoClickCost
 	f.AvitoDailyLimit = c.AvitoDailyLimit
+	f.YMarketCategoryID = c.YMarketCategoryID
+	f.YMarketFilepath = c.YMarketFilepath
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
 		f.MoySkladUrl = envMoySkladUrl

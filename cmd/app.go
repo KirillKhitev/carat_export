@@ -47,6 +47,21 @@ func (a *app) StartFileServer() {
 		http.ServeFile(w, r, config.Config.AvitoFilePath)
 	})
 
+	mux.HandleFunc("/yandex-market.yml", func(w http.ResponseWriter, r *http.Request) {
+		logger.Log.Log(logrus.InfoLevel, "Пришли за файлом YandexMarket:")
+
+		s := ""
+		for h, values := range r.Header {
+			s += h + ":\r\n"
+			for i, v := range values {
+				s += fmt.Sprintf("\t%d: %s", i, v) + "\r\n"
+			}
+		}
+
+		logger.Log.Log(logrus.InfoLevel, s)
+		http.ServeFile(w, r, config.Config.YMarketFilepath)
+	})
+
 	a.server = http.Server{
 		Addr:    config.Config.ServerURL,
 		Handler: mux,
