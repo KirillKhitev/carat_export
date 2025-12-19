@@ -22,7 +22,7 @@ type Shop struct {
 	XMLName    xml.Name   `xml:"shop"`
 	Name       string     `xml:"name"`
 	Company    string     `xml:"company"`
-	Categories []Category `xml:"categories"`
+	Categories []Category `xml:"categories>category"`
 	Offers     Offers     `xml:"offers"`
 }
 
