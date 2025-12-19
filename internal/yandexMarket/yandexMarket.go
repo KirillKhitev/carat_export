@@ -29,6 +29,7 @@ type Shop struct {
 type Category struct {
 	XMLName  xml.Name `xml:"category"`
 	ID       int      `xml:"id,attr"`
+	Name     string   `xml:",chardata"`
 	ParentID int      `xml:"parentId,attr,omitempty"`
 }
 
@@ -118,7 +119,8 @@ func CreateAutoloadFile(products []Offer) error {
 		Company: "ООО КАРАТ ЭКСПОРТ",
 		Categories: []Category{
 			{
-				ID: config.Config.YMarketCategoryID,
+				ID:   config.Config.YMarketCategoryID,
+				Name: config.Config.YMarketCategoryName,
 			},
 		},
 		Offers: Offers{
