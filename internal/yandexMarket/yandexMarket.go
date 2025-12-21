@@ -38,18 +38,27 @@ type Offers struct {
 	Offers  []Offer  `xml:"offers"`
 }
 type Offer struct {
-	XMLName     xml.Name           `xml:"offer"`
-	ID          string             `xml:"id,attr"`
-	Available   bool               `xml:"available,attr"`
-	Name        string             `xml:"name"`
-	CategoryID  int                `xml:"categoryId"`
-	Description ProductDescription `xml:"description"`
-	Picture     []string           `xml:"picture"`
-	Price       int                `xml:"price"`
-	Video       []string           `xml:"video"`
-	Archived    bool               `xml:"archived"`
-	Count       int                `xml:"count"`
-	Disabled    bool               `xml:"disabled"`
+	XMLName          xml.Name           `xml:"offer"`
+	ID               string             `xml:"id,attr"`
+	Available        bool               `xml:"available,attr"`
+	Name             string             `xml:"name"`
+	MarketCategoryID int                `xml:"market_category_id"`
+	Vendor           string             `xml:"vendor"`
+	VendorCode       string             `xml:"vendorCode"`
+	Description      ProductDescription `xml:"description"`
+	Picture          []string           `xml:"picture"`
+	Price            int                `xml:"price"`
+	Video            []string           `xml:"video"`
+	Param            []Param            `xml:"param"`
+	Archived         bool               `xml:"archived"`
+	Count            int                `xml:"count"`
+	Disabled         bool               `xml:"disabled"`
+}
+
+type Param struct {
+	XMLName xml.Name `xml:"param"`
+	Name    string   `xml:"name,attr"`
+	Value   string   `xml:",chardata"`
 }
 
 type ProductDescription struct {
@@ -76,22 +85,29 @@ func ConvertProducts(source map[string]storage.Product) []Offer {
 		p.Description = strings.Join([]string{p.Article, p.Description, config.Config.ProductDescriptionAdd}, "\n")
 
 		offer := Offer{
-			ID:          p.ID,
-			Available:   true,
-			Name:        p.Name,
-			Description: ProductDescription{Text: p.Description},
-			Price:       p.Price,
-			Count:       int(p.Quantity),
-			CategoryID:  config.Config.YMarketCategoryID,
+			ID:               p.Article,
+			Available:        true,
+			Name:             p.Name,
+			Vendor:           "CaratExport",
+			VendorCode:       p.Article,
+			Description:      ProductDescription{Text: p.Description},
+			Price:            p.Price,
+			Count:            int(p.Quantity),
+			MarketCategoryID: config.Config.YMarketCategoryID,
 		}
 
 		for _, img := range p.Images {
 			offer.Picture = append(offer.Picture, img.Url)
 		}
 
-		if p.VideoURL != "" {
-			offer.Video = append(offer.Video, p.VideoURL)
-		}
+		//if p.VideoURL != "" {
+		//	offer.Video = append(offer.Video, p.VideoURL)
+		//}
+
+		offer.Param = append(offer.Param, Param{
+			Name:  "Вид минерала",
+			Value: p.PathName,
+		})
 
 		result = append(result, offer)
 	}
