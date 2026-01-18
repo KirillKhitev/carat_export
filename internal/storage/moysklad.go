@@ -56,27 +56,28 @@ func NewMoySklad() *MoySklad {
 }
 
 type Product struct {
-	ID              string                `json:"id"`
-	Name            string                `json:"name"`
-	Article         string                `json:"article"`
-	Description     string                `json:"description"`
-	ImagesResponse  ProductImagesResponse `json:"images"`
-	VideoURL        string                `json:"video_url"`
-	Images          []Image               `json:"images_array"`
-	ExportAvito     bool                  `json:"-"`
-	ExportYMarket   bool                  `json:"-"`
-	AvitoId         string                `json:"-"`
-	AvitoClickCost  int                   `json:"-"`
-	AvitoDailyLimit float64               `json:"-"`
-	ExportVK        bool                  `json:"exportvk"`
-	VKId            string                `json:"vkid"`
-	VKMetadata      VKMetadata            `json:"vkmetadata"`
-	Price           int                   `json:"price"`
-	Stock           float32               `json:"stock"`
-	Quantity        float32               `json:"quantity"`
-	Attributes      []MoySkladAttribute   `json:"attributes"`
-	SalePrices      []SalePrice           `json:"saleprices"`
-	PathName        string                `json:"pathName"`
+	ID                 string                `json:"id"`
+	Name               string                `json:"name"`
+	Article            string                `json:"article"`
+	Description        string                `json:"description"`
+	ImagesResponse     ProductImagesResponse `json:"images"`
+	VideoURL           string                `json:"video_url"`
+	Images             []Image               `json:"images_array"`
+	ExportAvito        bool                  `json:"-"`
+	ExportYMarket      bool                  `json:"-"`
+	YMarketPriceMarkup int                   `json:"ymarket_price_markup"`
+	AvitoId            string                `json:"-"`
+	AvitoClickCost     int                   `json:"-"`
+	AvitoDailyLimit    float64               `json:"-"`
+	ExportVK           bool                  `json:"exportvk"`
+	VKId               string                `json:"vkid"`
+	VKMetadata         VKMetadata            `json:"vkmetadata"`
+	Price              int                   `json:"price"`
+	Stock              float32               `json:"stock"`
+	Quantity           float32               `json:"quantity"`
+	Attributes         []MoySkladAttribute   `json:"attributes"`
+	SalePrices         []SalePrice           `json:"saleprices"`
+	PathName           string                `json:"pathName"`
 }
 
 func (p *Product) prepareMoySkladAttributeRequest() *MoySkladAttributeRequest {
@@ -242,6 +243,15 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 		case `Выгружать в Yandex Market`:
 			val, _ := strconv.ParseBool(val)
 			p.ExportYMarket = val
+		case `Наценка для Yandex Market, %`:
+			if p.YMarketPriceMarkup, err = strconv.Atoi(val); err != nil {
+				logger.Log.WithFields(logrus.Fields{
+					"Value":       val,
+					"productID":   p.ID,
+					"productName": p.Name,
+					"error":       err,
+				}).Logln(logrus.ErrorLevel, "Ошибка при парсинге Наценки для Yandex Market товара из Мойсклад")
+			}
 		case `VideoURL`:
 			p.VideoURL = val
 		}

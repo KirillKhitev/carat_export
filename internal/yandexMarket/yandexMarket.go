@@ -84,6 +84,11 @@ func ConvertProducts(source map[string]storage.Product) []Offer {
 
 		p.Description = strings.Join([]string{p.Article, p.Description, config.Config.ProductDescriptionAdd}, "\n")
 
+		markup := p.YMarketPriceMarkup
+		if markup == 0 {
+			markup = 100
+		}
+
 		offer := Offer{
 			ID:               p.Article,
 			Available:        true,
@@ -91,7 +96,7 @@ func ConvertProducts(source map[string]storage.Product) []Offer {
 			Vendor:           "CaratExport",
 			VendorCode:       p.Article,
 			Description:      ProductDescription{Text: p.Description},
-			Price:            p.Price,
+			Price:            int(float64(p.Price) * (1 + float64(markup)/100)),
 			Count:            int(p.Quantity),
 			MarketCategoryID: config.Config.YMarketCategoryID,
 		}
