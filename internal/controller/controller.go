@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"maps"
+	"net/http"
 	"reflect"
 	"strconv"
 	"sync"
@@ -29,6 +30,7 @@ type Controller struct {
 	productVKIdsChan     chan string
 	vkStorage            *storage.VK
 	statistics           map[string]map[string][]statistic.StatisticRow
+	pausedUntil          time.Time
 }
 
 func NewController(ctx context.Context) *Controller {
@@ -105,10 +107,15 @@ func (c *Controller) process(ctx context.Context, needDo bool) {
 	c.startImageWorkers(ctx)
 	c.startVKWorkers(ctx)
 
-	if err := c.storage.GetProductsList(ctx); err != nil {
+	if code, err := c.storage.GetProductsList(ctx); err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"error": err,
 		}).Logln(logrus.ErrorLevel, "Ошибка при получении списка товаров MoySklad")
+
+		if code == http.StatusTooManyRequests {
+			logger.Log.Info("Получили 429 MoySklad (список продуктов) - останавливаем все на 60 сек")
+			c.pauseWorkers(60 * time.Second)
+		}
 
 		return
 	}
@@ -160,14 +167,24 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 			logger.Log.Logf(logrus.DebugLevel, "Остановили imageWorker #%d", idImageWorker)
 			return
 		default:
+			if time.Now().Before(c.pausedUntil) {
+				time.Sleep(time.Second)
+				continue
+			}
 			select {
 			case productId := <-c.productIdsChan:
-				if err := c.storage.GetImagesListProduct(ctx, productId, idImageWorker); err != nil {
+				code, err := c.storage.GetImagesListProduct(ctx, productId, idImageWorker)
+				if err != nil {
 					logger.Log.WithFields(logrus.Fields{
 						"error":       err,
 						"ImageWorker": idImageWorker,
 						"productId":   productId,
 					}).Log(logrus.ErrorLevel, "Ошибка при получении списка картинок товара")
+
+					if code == http.StatusTooManyRequests {
+						logger.Log.Infof("Получили 429 MoySklad (список картинок товара %s) - останавливаем все на 60 сек", productId)
+						c.pauseWorkers(60 * time.Second)
+					}
 
 					continue
 				}
@@ -199,6 +216,10 @@ func (c *Controller) vkWorker(ctx context.Context, idVKWorker int) {
 			logger.Log.Logf(logrus.DebugLevel, "Остановили vkWorker #%d", idVKWorker)
 			return
 		default:
+			if time.Now().Before(c.pausedUntil) {
+				time.Sleep(time.Second)
+				continue
+			}
 			select {
 			case productId := <-c.productVKIdsChan:
 				c.processVKProduct(ctx, productId, idVKWorker)
@@ -226,12 +247,18 @@ func (c *Controller) processVKProduct(ctx context.Context, productId string, idV
 	c.storage.Products[product.ID] = newProduct
 
 	if newProduct.VKId != product.VKId || !reflect.DeepEqual(newProduct.VKMetadata, product.VKMetadata) {
-		if err := c.storage.UpdateAttributesProduct(ctx, newProduct); err != nil {
+		code, err := c.storage.UpdateAttributesProduct(ctx, newProduct)
+		if err != nil {
 			logger.Log.WithFields(logrus.Fields{
 				"error":       err,
 				"productId":   product.ID,
 				"productName": product.Name,
 			}).Log(logrus.ErrorLevel, "Ошибка при обновлении VK-аттрибутов товара в МойСклад")
+
+			if code == http.StatusTooManyRequests {
+				logger.Log.Infof("Получили 429 MoySklad (обновляем товар %s) - останавливаем все на 60 сек", productId)
+				c.pauseWorkers(60 * time.Second)
+			}
 
 			return
 		}
@@ -374,11 +401,16 @@ func (c *Controller) updateAllProductsFromVK(ctx context.Context) {
 }
 
 func (c *Controller) updateProductFromVKToMoySklad(ctx context.Context, product storage.Product) {
-	if err := c.storage.UpdateAttributesProduct(ctx, product); err != nil {
+	code, err := c.storage.UpdateAttributesProduct(ctx, product)
+	if err != nil {
 		logger.Log.WithFields(logrus.Fields{
 			"error":     err,
 			"productId": product.ID,
 		}).Log(logrus.ErrorLevel, "Ошибка при обновлении VK-аттрибутов товара в МойСклад")
+
+		if code == http.StatusTooManyRequests {
+			c.pauseWorkers(60 * time.Second)
+		}
 
 		return
 	}
@@ -388,4 +420,11 @@ func (c *Controller) addStatisticRow(category, id, message string, status statis
 	c.statistics[category][id] = append(
 		c.statistics[category][id],
 		*statistic.NewStatisticaRow(message, status))
+}
+
+func (c *Controller) pauseWorkers(duration time.Duration) {
+	c.pausedUntil = time.Now().Add(duration)
+	logger.Log.WithFields(logrus.Fields{
+		"duration": duration,
+	}).Logln(logrus.WarnLevel, "Получили 429 от сервера MoySklad, ставим воркеры на паузу")
 }

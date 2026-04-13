@@ -10,6 +10,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -263,7 +264,7 @@ func (p *Product) UnmarshalJSON(data []byte) (err error) {
 }
 
 // GetProductsList формирует список товаров
-func (s *MoySklad) GetProductsList(ctx context.Context) error {
+func (s *MoySklad) GetProductsList(ctx context.Context) (int, error) {
 	offset := 0
 	needQuery := true
 
@@ -272,7 +273,7 @@ func (s *MoySklad) GetProductsList(ctx context.Context) error {
 		response := queryData[ProductListResponse, any](s, ctx, url, nil)
 
 		if response.Error != nil {
-			return response.Error
+			return response.Code, response.Error
 		}
 
 		logger.Log.WithFields(logrus.Fields{
@@ -294,16 +295,16 @@ func (s *MoySklad) GetProductsList(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	return http.StatusOK, nil
 }
 
 // GetImagesListProduct получает массив картинок товаров
-func (s *MoySklad) GetImagesListProduct(ctx context.Context, productId string, idImageWorker int) error {
+func (s *MoySklad) GetImagesListProduct(ctx context.Context, productId string, idImageWorker int) (int, error) {
 	url := fmt.Sprintf("%sentity/product/%s/images", config.Config.MoySkladUrl, productId)
 	response := queryData[ProductImageListResponse, any](s, ctx, url, nil)
 
 	if response.Error != nil {
-		return response.Error
+		return response.Code, response.Error
 	}
 
 	product := s.Products[productId]
@@ -317,17 +318,17 @@ func (s *MoySklad) GetImagesListProduct(ctx context.Context, productId string, i
 		s.getImage(ctx, imageRequest, &product, idImageWorker)
 	}
 
-	return nil
+	return http.StatusOK, nil
 }
 
-func (s *MoySklad) UpdateAttributesProduct(ctx context.Context, product Product) error {
+func (s *MoySklad) UpdateAttributesProduct(ctx context.Context, product Product) (int, error) {
 	data := product.prepareMoySkladAttributeRequest()
 
 	url := fmt.Sprintf("%sentity/product/%s", config.Config.MoySkladUrl, product.ID)
 	response := queryData[Product, MoySkladAttributeRequest](s, ctx, url, data)
 
 	if response.Error != nil {
-		return response.Error
+		return response.Code, response.Error
 	}
 
 	logger.Log.WithFields(logrus.Fields{
@@ -335,7 +336,7 @@ func (s *MoySklad) UpdateAttributesProduct(ctx context.Context, product Product)
 		"response": response,
 	}).Logf(logrus.DebugLevel, "Обновили аттрибуты товару %s в МойСклад", product.Name)
 
-	return nil
+	return http.StatusOK, nil
 }
 
 // getImage скачивает изображение на сервер, если его там нет, и заполняет массив картинок у товаров.
@@ -365,6 +366,10 @@ func (s *MoySklad) getImage(ctx context.Context, imageRequest ImageRow, product 
 		SetHeader(`Accept-Encoding`, `gzip`).
 		SetContext(contextWithTimeout).
 		Get(imageRequest.Meta.DownloadHref)
+
+	if resp != nil && resp.RawResponse != nil {
+		defer resp.RawResponse.Body.Close()
+	}
 
 	if errImg != nil {
 		logger.Log.WithFields(logrus.Fields{
@@ -429,7 +434,11 @@ func queryData[T any, D any](s *MoySklad, ctx context.Context, url string, data 
 		response, err = request.Get(url)
 	}
 
-	if response.StatusCode() != 200 {
+	if response != nil && response.RawResponse != nil {
+		defer response.RawResponse.Body.Close()
+	}
+
+	if response != nil && response.StatusCode() != http.StatusOK {
 		result.Error = fmt.Errorf(string(response.Body()))
 	}
 
