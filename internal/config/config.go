@@ -26,7 +26,7 @@ type Params struct {
 	NeedDownloadProducts  bool    `json:"need_download_products"`
 	ImportVKWorkers       int     `json:"vk_workers"`
 	MoySkladUpdateVKIDs   bool    `json:"moy_sklad_update_vk_ids"`
-	VkToken               string  `json:"vk_access_token"`
+	VkUserToken           string  `json:"vk_access_token"`
 	VkGroupID             int     `json:"vk_group_id"`
 	VkClientID            int     `json:"vk_client_id"`
 	VkCategoryID          int     `json:"vk_category_id"`
@@ -81,7 +81,7 @@ func (f *Params) Parse() error {
 	flag.BoolVar(&f.NeedDownloadProducts, "nd", c.NeedDownloadProducts, "Начинать ли выгрузку при запуске")
 	flag.IntVar(&f.ImportVKWorkers, "vkw", c.ImportVKWorkers, "Количество потоков для импорта в VK")
 	flag.BoolVar(&f.MoySkladUpdateVKIDs, "uvi", c.MoySkladUpdateVKIDs, "Обновить VK ID товаров в МойСклад-е")
-	flag.StringVar(&f.VkToken, "vkt", c.VkToken, "VK API токен")
+	flag.StringVar(&f.VkUserToken, "vkt", c.VkUserToken, "VK API токен")
 	flag.IntVar(&f.VkGroupID, "vgi", c.VkGroupID, "VK Group ID")
 	flag.IntVar(&f.VkClientID, "vcli", c.VkClientID, "VK Client ID")
 	flag.IntVar(&f.VkCategoryID, "vci", c.VkCategoryID, "VK Category ID")

@@ -12,6 +12,7 @@ import (
 	vkobject "github.com/SevereCloud/vksdk/v3/object"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -45,7 +46,7 @@ func NewVK(ctx context.Context) *VK {
 
 	logger.Log.Log(logrus.InfoLevel, "Успешно обновили VK Access_token")
 
-	v.vkApi = vk.NewVK(config.Config.VkToken)
+	v.vkApi = vk.NewVK(config.Config.VkUserToken)
 	v.vkApi.Limit = vk.LimitUserToken
 
 	err = v.UpdateImageUploadServerURL(ctx)
@@ -74,7 +75,7 @@ func (v *VK) UpdateImageUploadServerURL(ctx context.Context) error {
 		"group_id": config.Config.VkGroupID,
 	}
 
-	response, err := v.vkApi.PhotosGetMarketAlbumUploadServer(params)
+	response, err := v.getProductPhotoUploadServer(params)
 	if err != nil {
 		return err
 	}
@@ -82,6 +83,11 @@ func (v *VK) UpdateImageUploadServerURL(ctx context.Context) error {
 	v.vkImageUploadServerURL = response.UploadURL
 
 	return nil
+}
+
+func (v *VK) getProductPhotoUploadServer(params vk.Params) (response vk.PhotosGetMarketUploadServerResponse, err error) {
+	err = v.vkApi.RequestUnmarshal("market.getProductPhotoUploadServer", &response, params)
+	return
 }
 
 func (v *VK) GetAlbums(ctx context.Context) error {
@@ -135,20 +141,10 @@ func (v *VK) GetProductList(ctx context.Context) error {
 }
 
 func (v *VK) RemoveProduct(ctx context.Context, product Product) (Product, error) {
-	newProduct, err := v.EditProduct(ctx, product, 1)
-	if err != nil {
-		return newProduct, err
-	}
-
-	logger.Log.Logf(logrus.InfoLevel, "Удалили товар %s в VK", product.Name)
-
-	return newProduct, err
-}
-
-func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Product, error) {
 	product, err := v.syncImages(ctx, product)
+	product.VKMetadata.Hash = product.GetHashVK()
 
-	params := v.prepareParamsProduct(product, deleted)
+	params := v.prepareParamsProduct(product, 1)
 
 	response, err := v.vkApi.MarketEdit(params)
 	if err != nil {
@@ -159,9 +155,38 @@ func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Pro
 		return product, fmt.Errorf("Сервер VK ответил %s", response)
 	}
 
+	logger.Log.Logf(logrus.InfoLevel, "Удалили товар %s в VK", product.Name)
+
+	return product, err
+}
+
+func (v *VK) EditProduct(ctx context.Context, product Product, deleted int) (Product, bool, error) {
+	product, err := v.syncImages(ctx, product)
+
+	if !product.NeedSendToVK() {
+		return product, true, fmt.Errorf("Товар не изменился, не шлем в VK")
+	}
+
+	product.VKMetadata.Hash = product.GetHashVK()
+
+	params := v.prepareParamsProduct(product, deleted)
+
+	if _, ok := params["main_photo_id"]; !ok {
+		return product, false, fmt.Errorf("не определили главное фото")
+	}
+
+	response, err := v.vkApi.MarketEdit(params)
+	if err != nil {
+		return product, false, err
+	}
+
+	if response == 0 {
+		return product, false, fmt.Errorf("Сервер VK ответил %s", response)
+	}
+
 	logger.Log.Logf(logrus.InfoLevel, "Отредактировали товар %s в VK", product.Name)
 
-	return product, nil
+	return product, false, nil
 }
 
 func (v *VK) CreateProduct(ctx context.Context, product Product) (Product, error) {
@@ -170,8 +195,13 @@ func (v *VK) CreateProduct(ctx context.Context, product Product) (Product, error
 	}
 
 	product, err := v.syncImages(ctx, product)
+	product.VKMetadata.Hash = product.GetHashVK()
 
 	params := v.prepareParamsProduct(product, 0)
+
+	if _, ok := params["main_photo_id"]; !ok {
+		return product, fmt.Errorf("не определили главное фото")
+	}
 
 	response, err := v.vkApi.MarketAdd(params)
 	if err != nil {
@@ -324,13 +354,30 @@ func (v *VK) uploadImage(ctx context.Context, imageName string) (imgID int, err 
 
 	defer f.Close()
 
-	responseImg, err := v.vkApi.UploadMarketPhoto(config.Config.VkGroupID, true, f)
+	responseImg, err := v.uploadMarketPhoto(f)
 
-	if len(responseImg) == 0 {
+	if responseImg.PhotoID == 0 {
 		return
 	}
 
-	imgID = responseImg[0].ID
+	imgID = responseImg.PhotoID
+
+	return
+}
+
+type PhotosSaveProductPhotoResponse struct {
+	PhotoID int `json:"photo_id"`
+}
+
+func (v *VK) uploadMarketPhoto(file io.Reader) (response PhotosSaveProductPhotoResponse, err error) {
+	bodyContent, err := v.vkApi.UploadFile(v.vkImageUploadServerURL, file, "file", "photo.jpeg")
+	if err != nil {
+		return
+	}
+
+	err = v.vkApi.RequestUnmarshal("market.saveProductPhoto", &response, vk.Params{
+		"upload_response": string(bodyContent),
+	})
 
 	return
 }
@@ -390,7 +437,7 @@ func (v *VK) UpdateAccessToken() error {
 	}
 
 	config.Config.VKRefreshToken = result.RefreshToken
-	config.Config.VkToken = result.AccessToken
+	config.Config.VkUserToken = result.AccessToken
 
 	bytes, err := json.MarshalIndent(config.Config, "", "   ")
 

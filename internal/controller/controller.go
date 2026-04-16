@@ -196,10 +196,12 @@ func (c *Controller) imageWorker(ctx context.Context, idImageWorker int) {
 
 func (c *Controller) processVK(ctx context.Context) {
 	logger.Log.Log(logrus.InfoLevel, "Начали обработку VK")
+	c.storage.M.RLock()
 	for id, _ := range c.storage.Products {
 		time.Sleep(time.Millisecond * 700)
 		c.productVKIdsChan <- id
 	}
+	c.storage.M.RUnlock()
 
 	close(c.stopVKWorkersChan)
 
@@ -297,15 +299,24 @@ func (c *Controller) saveProductInVK(ctx context.Context, bproduct storage.Produ
 	}
 
 	if product.VKId != "" {
-		newProduct, err := c.vkStorage.EditProduct(ctx, product, 0)
+		newProduct, skip, err := c.vkStorage.EditProduct(ctx, product, 0)
 		if err != nil {
-			logger.Log.WithFields(logrus.Fields{
-				"error":   err,
-				"product": product.ID,
-				"VKID":    product.VKId,
-			}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
+			if !skip {
+				logger.Log.WithFields(logrus.Fields{
+					"error":   err,
+					"product": product.ID,
+					"VKID":    product.VKId,
+				}).Logf(logrus.ErrorLevel, "Ошибка при изменении товара %s в VK", product.Name)
 
-			c.addStatisticRow("VK", product.ID, fmt.Sprintf("Ошибка при изменении товара: %s", err), statistic.STATUS_ERROR)
+				c.addStatisticRow("VK", product.ID, fmt.Sprintf("Ошибка при изменении товара: %s", err), statistic.STATUS_ERROR)
+			} else {
+				logger.Log.WithFields(logrus.Fields{
+					"product": product.ID,
+					"VKID":    product.VKId,
+				}).Logf(logrus.InfoLevel, "Товар %s не изменился - не шлем в VK", product.Name)
+
+				c.addStatisticRow("VK", product.ID, fmt.Sprint("Товар не изменился - не шлем в VK"), statistic.STATUS_NORMAL)
+			}
 
 			return newProduct
 		}

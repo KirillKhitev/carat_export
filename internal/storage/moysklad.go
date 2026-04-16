@@ -9,6 +9,7 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
+	"hash/fnv"
 	"math"
 	"net/http"
 	"os"
@@ -20,7 +21,7 @@ import (
 
 type MoySklad struct {
 	client   *resty.Client
-	m        *sync.RWMutex
+	M        *sync.RWMutex
 	Products map[string]Product
 }
 
@@ -39,6 +40,7 @@ type MoySkladAttributeRequest struct {
 
 type VKMetadata struct {
 	Images map[string]int `json:"images"`
+	Hash   uint64         `json:"hash"`
 }
 
 type ProductAttributeIDs struct {
@@ -51,7 +53,7 @@ var AttributeIDs ProductAttributeIDs = ProductAttributeIDs{}
 func NewMoySklad() *MoySklad {
 	return &MoySklad{
 		client:   resty.New(),
-		m:        &sync.RWMutex{},
+		M:        &sync.RWMutex{},
 		Products: make(map[string]Product),
 	}
 }
@@ -107,6 +109,44 @@ func (p *Product) prepareMoySkladAttributeRequest() *MoySkladAttributeRequest {
 	result.Attributes = attributes
 
 	return result
+}
+
+func (p *Product) NeedSendToVK() bool {
+	if p.VKMetadata.Hash == 0 {
+		return true
+	}
+
+	newHash := p.GetHashVK()
+	if newHash != p.VKMetadata.Hash {
+		return true
+	}
+
+	return false
+}
+
+func (p *Product) GetHashVK() uint64 {
+	fields := make(map[string]interface{})
+	fields["id"] = p.ID
+	fields["name"] = p.Name
+	fields["article"] = p.Article
+	fields["description"] = p.Description
+	fields["exportvk"] = p.ExportVK
+	fields["vkid"] = p.VKId
+	fields["price"] = p.Price
+	fields["stock"] = p.Stock
+	fields["quantity"] = p.Quantity
+	fields["pathname"] = p.PathName
+
+	return p.GetHashByFields(fields)
+}
+
+func (p *Product) GetHashByFields(data map[string]interface{}) uint64 {
+	str := fmt.Sprint(data)
+
+	h := fnv.New64a()
+	h.Write([]byte(str))
+
+	return h.Sum64()
 }
 
 type Image struct {
@@ -289,9 +329,9 @@ func (s *MoySklad) GetProductsList(ctx context.Context) (int, error) {
 				product.VKMetadata.Images = make(map[string]int)
 			}
 
-			s.m.Lock()
+			s.M.Lock()
 			s.Products[product.ID] = product
-			s.m.Unlock()
+			s.M.Unlock()
 		}
 	}
 
@@ -348,9 +388,9 @@ func (s *MoySklad) getImage(ctx context.Context, imageRequest ImageRow, product 
 
 	product.Images = append(product.Images, image)
 
-	s.m.Lock()
+	s.M.Lock()
 	s.Products[product.ID] = *product
-	s.m.Unlock()
+	s.M.Unlock()
 
 	filepath := strings.Join([]string{config.Config.ImagesPath, image.Filename}, string(os.PathSeparator))
 	_, err := os.Stat(filepath)
