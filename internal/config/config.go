@@ -45,6 +45,8 @@ type Params struct {
 	YMarketCategoryID     int     `json:"ymarket_category_id"`
 	YMarketCategoryName   string  `json:"ymarket_category_name"`
 	YMarketFilepath       string  `json:"ymarket_filepath"`
+	Tnved                 string  `json:"tnved"`
+	Okpd2                 string  `json:"okpd2"`
 }
 
 var Config Params = Params{}
@@ -105,6 +107,8 @@ func (f *Params) Parse() error {
 	f.YMarketCategoryID = c.YMarketCategoryID
 	f.YMarketCategoryName = c.YMarketCategoryName
 	f.YMarketFilepath = c.YMarketFilepath
+	f.Tnved = c.Tnved
+	f.Okpd2 = c.Okpd2
 
 	if envMoySkladUrl := os.Getenv(`MOYSKLAD_URL`); envMoySkladUrl != `` {
 		f.MoySkladUrl = envMoySkladUrl

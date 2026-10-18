@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/KirillKhitev/carat_export/internal/config"
-	"github.com/KirillKhitev/carat_export/internal/logger"
-	vk "github.com/SevereCloud/vksdk/v3/api"
-	vkobject "github.com/SevereCloud/vksdk/v3/object"
-	"github.com/go-resty/resty/v2"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/KirillKhitev/carat_export/internal/config"
+	"github.com/KirillKhitev/carat_export/internal/logger"
+	vk "github.com/SevereCloud/vksdk/v3/api"
+	vkobject "github.com/SevereCloud/vksdk/v3/object"
+	"github.com/go-resty/resty/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type VK struct {

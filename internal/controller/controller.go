@@ -3,6 +3,14 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
+	"maps"
+	"net/http"
+	"reflect"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/KirillKhitev/carat_export/internal/avito"
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/KirillKhitev/carat_export/internal/email"
@@ -11,13 +19,6 @@ import (
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/KirillKhitev/carat_export/internal/yandexMarket"
 	"github.com/sirupsen/logrus"
-	"log"
-	"maps"
-	"net/http"
-	"reflect"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type Controller struct {

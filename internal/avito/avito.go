@@ -2,13 +2,14 @@ package avito
 
 import (
 	"encoding/xml"
+	"maps"
+	"os"
+	"strings"
+
 	"github.com/KirillKhitev/carat_export/internal/config"
 	"github.com/KirillKhitev/carat_export/internal/logger"
 	"github.com/KirillKhitev/carat_export/internal/storage"
 	"github.com/sirupsen/logrus"
-	"maps"
-	"os"
-	"strings"
 )
 
 type Product struct {
@@ -27,6 +28,8 @@ type Product struct {
 	Condition          string             `xml:"Condition"`
 	Price              int                `xml:"Price"`
 	VideoURL           string             `xml:"VideoURL"`
+	Tnved              string             `xml:"TNVED"`
+	Okpd2              string             `xml:"OKPD2"`
 }
 
 type ProductDescription struct {
@@ -89,6 +92,8 @@ func ConvertProducts(source map[string]storage.Product) []Product {
 			GoodsType:   "Другое",
 			AdType:      "Продаю своё",
 			Condition:   "Новое",
+			Tnved:       config.Config.Tnved,
+			Okpd2:       config.Config.Okpd2,
 		}
 
 		preparePromoManualOptions(&product, p)
