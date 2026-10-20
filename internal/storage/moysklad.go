@@ -5,10 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/KirillKhitev/carat_export/internal/config"
-	"github.com/KirillKhitev/carat_export/internal/logger"
-	"github.com/go-resty/resty/v2"
-	"github.com/sirupsen/logrus"
 	"hash/fnv"
 	"math"
 	"net/http"
@@ -17,6 +13,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/KirillKhitev/carat_export/internal/config"
+	"github.com/KirillKhitev/carat_export/internal/logger"
+	"github.com/go-resty/resty/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type MoySklad struct {
@@ -136,6 +137,7 @@ func (p *Product) GetHashVK() uint64 {
 	fields["stock"] = p.Stock
 	fields["quantity"] = p.Quantity
 	fields["pathname"] = p.PathName
+	fields["images"] = p.VKMetadata.Images
 
 	return p.GetHashByFields(fields)
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"strconv"
@@ -321,7 +322,11 @@ func (v *VK) syncImages(ctx context.Context, product Product) (Product, error) {
 		return product, nil
 	}
 
+	removingImages := maps.Clone(product.VKMetadata.Images)
+
 	for _, image := range product.Images {
+		delete(removingImages, image.Filename)
+
 		_, ok := product.VKMetadata.Images[image.Filename]
 		if !ok {
 			imgID, err := v.uploadImage(ctx, image.Filename)
@@ -341,6 +346,11 @@ func (v *VK) syncImages(ctx context.Context, product Product) (Product, error) {
 
 			product.VKMetadata.Images[image.Filename] = imgID
 		}
+	}
+
+	// удаляем из метадаты несуществующие картинки
+	for imageName := range removingImages {
+		delete(product.VKMetadata.Images, imageName)
 	}
 
 	return product, nil
