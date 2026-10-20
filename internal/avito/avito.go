@@ -13,23 +13,25 @@ import (
 )
 
 type Product struct {
-	XMLName            xml.Name           `xml:"Ad"`
-	ID                 string             `xml:"Id"`
-	AvitoId            string             `xml:"AvitoId,omitempty"`
-	Title              string             `xml:"Title"`
-	Description        ProductDescription `xml:"Description"`
-	Images             Images             `xml:"Images"`
-	Address            string             `xml:"Address"`
-	Promo              string             `xml:"Promo,omitempty"`
-	PromoManualOptions PromoManualOptions `xml:"PromoManualOptions,omitempty"`
-	Category           string             `xml:"Category"`
-	GoodsType          string             `xml:"GoodsType"`
-	AdType             string             `xml:"AdType"`
-	Condition          string             `xml:"Condition"`
-	Price              int                `xml:"Price"`
-	VideoURL           string             `xml:"VideoURL"`
-	Tnved              string             `xml:"TNVED"`
-	Okpd2              string             `xml:"OKPD2"`
+	XMLName             xml.Name           `xml:"Ad"`
+	ID                  string             `xml:"Id"`
+	AvitoId             string             `xml:"AvitoId,omitempty"`
+	Title               string             `xml:"Title"`
+	Description         ProductDescription `xml:"Description"`
+	Images              Images             `xml:"Images"`
+	Address             string             `xml:"Address"`
+	Promo               string             `xml:"Promo,omitempty"`
+	PromoManualOptions  PromoManualOptions `xml:"PromoManualOptions,omitempty"`
+	Category            string             `xml:"Category"`
+	GoodsType           string             `xml:"GoodsType"`
+	AdType              string             `xml:"AdType"`
+	Condition           string             `xml:"Condition"`
+	Price               int                `xml:"Price"`
+	VideoURL            string             `xml:"VideoURL"`
+	Tnved               string             `xml:"TNVED"`
+	Okpd2               string             `xml:"OKPD2"`
+	BarcodeAvailability string             `xml:"BarcodeAvailability"`
+	NoDocuments         string             `xml:"NoDocuments"`
 }
 
 type ProductDescription struct {
@@ -81,19 +83,21 @@ func ConvertProducts(source map[string]storage.Product) []Product {
 		p.Description = strings.Join([]string{p.Article, p.Description, config.Config.ProductDescriptionAdd}, "\n")
 
 		product := Product{
-			ID:          p.ID,
-			Title:       p.Name,
-			Description: ProductDescription{Text: p.Description},
-			AvitoId:     p.AvitoId,
-			Price:       p.Price,
-			VideoURL:    p.VideoURL,
-			Address:     "Екатеринбург, ул. Малышева, 53",
-			Category:    "Коллекционирование",
-			GoodsType:   "Другое",
-			AdType:      "Продаю своё",
-			Condition:   "Новое",
-			Tnved:       config.Config.Tnved,
-			Okpd2:       config.Config.Okpd2,
+			ID:                  p.ID,
+			Title:               p.Name,
+			Description:         ProductDescription{Text: p.Description},
+			AvitoId:             p.AvitoId,
+			Price:               p.Price,
+			VideoURL:            p.VideoURL,
+			Address:             "Екатеринбург, ул. Малышева, 53",
+			Category:            "Коллекционирование",
+			GoodsType:           "Другое",
+			AdType:              "Продаю своё",
+			Condition:           "Новое",
+			Tnved:               config.Config.Tnved,
+			Okpd2:               config.Config.Okpd2,
+			BarcodeAvailability: "Нет",
+			NoDocuments:         "Подтверждаю",
 		}
 
 		preparePromoManualOptions(&product, p)
